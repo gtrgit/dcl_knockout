@@ -1,51 +1,72 @@
-/// --- Set up a system ---
+import { PathedPlatform } from "./pathedPlatform"
+//
+const course = new GLTFShape("models/course01/course01.glb")
+const platform = new GLTFShape("models/platform01/platform01.glb")
+const knocker = new GLTFShape("models/platform01/knocker01.glb")
+//
+//
+//
+// Static platform course01
 
-class RotatorSystem {
-  // this group will contain every entity that has a Transform component
-  group = engine.getComponentGroup(Transform)
+const course01 = new Entity()
+course01.addComponent(course)
+course01.addComponent(new Transform({position: new Vector3(16,0,16)}))
+engine.addEntity(course01)
 
-  update(dt: number) {
-    // iterate over the entities of the group
-    for (let entity of this.group.entities) {
-      // get the Transform component of the entity
-      const transform = entity.getComponent(Transform)
+//platform01
+const staticPlatform = new Entity()
+staticPlatform.addComponent(platform)
+staticPlatform.addComponent(new Transform({position: new Vector3(18,1,19),scale: new Vector3(1,.5,1)}))
+engine.addEntity(staticPlatform)
 
-      // mutate the rotation
-      transform.rotate(Vector3.Up(), dt * 10)
-    }
-  }
-}
+let path = [new Vector3(0, -1, 1.5), new Vector3(0, 1, 1.5), new Vector3(0, 1, -1.5), new Vector3(0, -1, -1.5)]
+const knocker01 = new PathedPlatform(knocker, path,2)
+knocker01.setParent(staticPlatform)
 
-// Add a new instance of the system to the engine
-engine.addSystem(new RotatorSystem())
+const platform02 = new Entity()
+platform02.addComponent(platform)
+platform02.addComponent(new Transform({position: new Vector3(18,1.7,26),scale: new Vector3(1,.5,1)}))
+engine.addEntity(platform02)
 
-/// --- Spawner function ---
+const knocker02 = new PathedPlatform(knocker, path,2)
+knocker02.setParent(platform02)
 
-function spawnCube(x: number, y: number, z: number) {
-  // create the entity
-  const cube = new Entity()
+const platform03 = new Entity()
+platform03.addComponent(platform)
+platform03.addComponent(new Transform({position: new Vector3(18,2,32),scale: new Vector3(1,.5,1.5)}))
+engine.addEntity(platform03)
 
-  // add a transform to the entity
-  cube.addComponent(new Transform({ position: new Vector3(x, y, z) }))
+const knocker03 = new PathedPlatform(knocker, path,2)
+knocker03.setParent(platform03)
 
-  // add a shape to the entity
-  cube.addComponent(new BoxShape())
+const platform04 = new Entity()
+platform04.addComponent(platform)
+platform04.addComponent(new Transform({position: new Vector3(18,2,40),scale: new Vector3(2,.5,2)}))
+engine.addEntity(platform04)
 
-  // add the entity to the engine
-  engine.addEntity(cube)
+const knocker04 = new PathedPlatform(knocker, path,2)
+knocker04.setParent(platform04)
 
-  return cube
-}
+const platform05 = new Entity()
+platform05.addComponent(platform)
+platform05.addComponent(new Transform({position: new Vector3(30,4,40),rotation: Quaternion.Euler(0,180,0),scale: new Vector3(2,.5,2)}))
+engine.addEntity(platform05)
 
-/// --- Spawn a cube ---
+const knocker05 = new PathedPlatform(knocker, path,2)
+knocker05.setParent(platform05)
 
-const cube = spawnCube(8, 1, 8)
+const platform06 = new Entity()
+platform06.addComponent(platform)
+platform06.addComponent(new Transform({position: new Vector3(30,5a,30),rotation: Quaternion.Euler(0,180,0),scale: new Vector3(2,.5,2)}))
+engine.addEntity(platform06)
 
-cube.addComponent(
-  new OnClick(() => {
-    cube.getComponent(Transform).scale.z *= 1.1
-    cube.getComponent(Transform).scale.x *= 0.9
+const knocker06 = new PathedPlatform(knocker, path,2)
+knocker06.setParent(platform06)
 
-    spawnCube(Math.random() * 8 + 1, Math.random() * 8, Math.random() * 8 + 1)
-  })
-)
+const platform07 = new Entity()
+platform07.addComponent(platform)
+platform07.addComponent(new Transform({position: new Vector3(30,5,24),rotation: Quaternion.Euler(0,180,0),scale: new Vector3(2,.5,2)}))
+engine.addEntity(platform07)
+
+const knocker07 = new PathedPlatform(knocker, path,2)
+knocker07.setParent(platform07)
