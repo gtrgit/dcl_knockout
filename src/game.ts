@@ -51,7 +51,7 @@ engine.addEntity(floor3x7)
 
 const course01 = new Entity()
 course01.addComponent(course01glb)
-course01.addComponent(new Transform({position: new Vector3(16,8,16)}))
+course01.addComponent(new Transform({position: new Vector3(16,16,16)}))
 engine.addEntity(course01)
 
 
@@ -76,6 +76,15 @@ const course05 = new Entity()
 course05.addComponent(course05glb)
 course05.addComponent(new Transform({position: new Vector3(80,8,16)}))
 engine.addEntity(course05)
+
+
+const roundaboutAShape = new GLTFShape("models/level01Course/roundaboutA.glb")
+
+const roundaboutA1 = new RotatingPlatform(
+  roundaboutAShape,
+  new Transform({ position: new Vector3(40, 3, 33) }),
+  Quaternion.Euler(0, 120, 0)
+)
 
 
 /*
