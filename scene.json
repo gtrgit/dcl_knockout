@@ -45,6 +45,9 @@
     "voiceEnabled": true,
     "blacklist": []
   },
+  "requiredPermissions": [
+    "ALLOW_TO_MOVE_PLAYER_INSIDE_SCENE"
+  ],
   "main": "bin/game.js",
   "tags": [],
   "spawnPoints": [
@@ -52,14 +55,14 @@
       "name": "spawn1",
       "default": true,
       "position": {
-        "x": 0,
+        "x": 1,
         "y": 0,
-        "z": 0
+        "z": 22.5
       },
       "cameraTarget": {
-        "x": 8,
-        "y": 1,
-        "z": 8
+        "x": 22,
+        "y": 0,
+        "z": 22
       }
     }
   ]
