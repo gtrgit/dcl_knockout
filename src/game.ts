@@ -47,6 +47,16 @@ let raceWinner:string = ''
 let playersInGate:number = 0
 let playersRacing:number = 0
 
+let raceTierOff:number = .05
+let raceTierOn:number = 1
+let goldRaceTierOpacity:number = raceTierOff
+let silverRaceTierOpacity = raceTierOff
+let bronzeRaceTierOpacity = raceTierOn
+
+
+
+
+
 // identifier is passed to the triggerBoxEmitter class to send the player names to different stageArrays
 let identifier:string
 //
@@ -83,17 +93,6 @@ executeTask(async () => {await userData.then((value)=> {currentPlayerName= value
 //Assign this players Eth adderss and assign => playerEthAdr
 executeTask(async () => {await getPlayerEthAdr.then((value)=> {playerEthAdr= value})})
 
-//TODO replace with Ticket booth with Fall Guy inside
-//todo replace with ticket booth and link to matic payment after tested
-const ticketBooth = new Emitter(
-  resources.stadium.stage_gate,
-  new Transform({
-    position: new Vector3(2,2,3),
-    scale: new Vector3(.5, .5, .5),
-    rotation: Quaternion.Euler(180, 0, 0),
-  }),
-  userData
-)
 
 //add the player name to the startGate array
 sceneMessageBus.on('startGamePlayerName', (e) => {
@@ -533,6 +532,12 @@ const cube2 = spawnCube(6, 2.5, 4)
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 //MATIC
+
+//Get Player Balance
+let l1_l2Balance:any
+executeTask(async () => {await await matic.balance(playerEthAdr).then((value)=> {l1_l2Balance = value})})
+
+log('balance '+l1_l2Balance)
 const sendGtr2HB = new Entity()
                 sendGtr2HB.addComponent(new TextShape("send Gtr 2 HB"))
                 sendGtr2HB.addComponent(new Transform({
@@ -584,7 +589,7 @@ const hbBal = new Entity()
 
 
 HBcube.addComponent(new OnPointerDown(async e => {
-	const balance = await matic.balance(testWallet)
+	const balance = await matic.balance(playerEthAdr)
   log('bal:',balance)
   
 })
@@ -1346,7 +1351,7 @@ end.adaptWidth = true
 end.width = '100%'
 end.height = '10%'
 //end.positionX = 2
-end.color = Color4.Black()
+end.color = Color4.Purple()
 end.hAlign = 'center'
 end.vAlign = 'top'
 end.opacity = 1
@@ -1367,15 +1372,399 @@ const gameMenuContainer = new UICanvas()
 
 const gameMenu = new UIContainerRect(gameMenuContainer)
 gameMenu.adaptWidth = true
-gameMenu.width = '10%'
-gameMenu.height = '25%'
-gameMenu.positionY = 90
-gameMenu.positionX = -10
+gameMenu.width = '15%'
+gameMenu.height = '17%'
+gameMenu.positionY = 140
+gameMenu.positionX = -4
 gameMenu.color = Color4.Black()
 gameMenu.hAlign = 'right'
 gameMenu.vAlign = 'bottom'
-gameMenu.opacity = 0.8
+gameMenu.opacity = 0.9
 
+const joinButtonUp = new UIImage(gameMenu, resources.textureImages.gameUI)
+joinButtonUp.name = "clickable-image"
+joinButtonUp.width = "80"
+joinButtonUp.height = "30"
+joinButtonUp.sourceWidth = 236
+joinButtonUp.sourceHeight = 140
+joinButtonUp.isPointerBlocker = true
+joinButtonUp.hAlign = 'left'
+joinButtonUp.vAlign = 'bottom'
+joinButtonUp.positionY = 5
+joinButtonUp.positionX = 5
+joinButtonUp.sourceLeft = 1
+joinButtonUp.sourceTop = 70
+joinButtonUp.sourceWidth = 104
+joinButtonUp.sourceHeight = 37
+joinButtonUp.onClick = new OnClick(() => {
+  // DO SOMETHING
+  log('click')
+})
+
+const exitButtonUp = new UIImage(gameMenu, resources.textureImages.gameUI)
+exitButtonUp.name = "clickable-image2"
+exitButtonUp.width = "80"
+exitButtonUp.height = "30"
+exitButtonUp.sourceWidth = 236
+exitButtonUp.sourceHeight = 140
+exitButtonUp.isPointerBlocker = true
+exitButtonUp.hAlign = 'right'
+exitButtonUp.vAlign = 'bottom'
+exitButtonUp.positionY = 4
+exitButtonUp.positionX = -32
+exitButtonUp.sourceLeft = 105
+exitButtonUp.sourceTop = 71
+exitButtonUp.sourceWidth = 95
+exitButtonUp.sourceHeight = 36
+exitButtonUp.onClick = new OnClick(() => {
+  // DO SOMETHING
+  log('click')
+})
+    
+
+const faqButtonUp = new UIImage(gameMenu, resources.textureImages.gameUI)
+faqButtonUp.name = "clickable-image2"
+faqButtonUp.width = "28"
+faqButtonUp.height = "30"
+faqButtonUp.sourceWidth = 236
+faqButtonUp.sourceHeight = 140
+faqButtonUp.isPointerBlocker = true
+faqButtonUp.hAlign = 'right'
+faqButtonUp.vAlign = 'bottom'
+faqButtonUp.positionY = 4
+faqButtonUp.positionX = -4
+faqButtonUp.sourceLeft = 200
+faqButtonUp.sourceTop = 71
+faqButtonUp.sourceWidth = 36
+faqButtonUp.sourceHeight = 36
+faqButtonUp.onClick = new OnClick(() => {
+  // DO SOMETHING
+  log('click')
+})
+    
+
+///////////////////////////////////////////
+const medalsContainer = new UIContainerRect(gameMenu)
+medalsContainer.adaptWidth = true
+medalsContainer.width = '95%'
+medalsContainer.height = '12%'
+medalsContainer.color = Color4.Purple()
+medalsContainer.hAlign = 'center'
+medalsContainer.vAlign = 'top'
+medalsContainer.opacity = 1
+medalsContainer.positionY = -5
+medalsContainer.positionX = 0
+
+const gameMenuHeader = new UIText(medalsContainer)
+gameMenuHeader.fontSize = 8
+gameMenuHeader.value = 'Medals: '
+gameMenuHeader.hAlign = 'left'
+gameMenuHeader.vAlign = 'center'
+gameMenuHeader.color = Color4.White()
+gameMenuHeader.positionY = 20
+gameMenuHeader.positionX = 4
+
+
+
+const goldMedalsContainer = new UIContainerRect(medalsContainer)
+goldMedalsContainer.adaptWidth = true
+goldMedalsContainer.width = '20%'
+goldMedalsContainer.height = '75%'
+goldMedalsContainer.color = Color4.FromHexString('#F7C644FF')
+goldMedalsContainer.hAlign = 'center'
+goldMedalsContainer.vAlign = 'center'
+goldMedalsContainer.opacity = 1
+goldMedalsContainer.positionY = 0
+goldMedalsContainer.positionX = -19
+
+
+const goldMedalsHeader = new UIText(goldMedalsContainer)
+goldMedalsHeader.fontSize = 8
+goldMedalsHeader.value = 'Gold: 00 '
+goldMedalsHeader.hAlign = 'center'
+goldMedalsHeader.vAlign = 'center'
+goldMedalsHeader.color = Color4.Black()
+goldMedalsHeader.positionY = 20
+goldMedalsHeader.positionX = 2
+
+
+
+const silverMedalsContainer = new UIContainerRect(medalsContainer)
+silverMedalsContainer.adaptWidth = true
+silverMedalsContainer.width = '22%'
+silverMedalsContainer.height = '75%'
+silverMedalsContainer.color = Color4.FromHexString('#9EC6C6FF')
+silverMedalsContainer.hAlign = 'center'
+silverMedalsContainer.vAlign = 'center'
+silverMedalsContainer.opacity = 1
+silverMedalsContainer.positionY = 0
+silverMedalsContainer.positionX = 22
+
+
+const silverMedalsHeader = new UIText(silverMedalsContainer)
+silverMedalsHeader.fontSize = 8
+silverMedalsHeader.value = 'Silver: 00'
+silverMedalsHeader.hAlign = 'center'
+silverMedalsHeader.vAlign = 'center'
+silverMedalsHeader.color = Color4.Black()
+silverMedalsHeader.positionY = 20
+silverMedalsHeader.positionX = 2
+
+
+
+const bronzeMedalsContainer = new UIContainerRect(medalsContainer)
+bronzeMedalsContainer.adaptWidth = true
+bronzeMedalsContainer.width = '25%'
+bronzeMedalsContainer.height = '75%'
+bronzeMedalsContainer.color = Color4.FromHexString('#F57D12FF')
+bronzeMedalsContainer.hAlign = 'center'
+bronzeMedalsContainer.vAlign = 'center'
+bronzeMedalsContainer.opacity = 1
+bronzeMedalsContainer.positionY = 0
+bronzeMedalsContainer.positionX = 68
+
+
+const bronzeMedalsHeader = new UIText(bronzeMedalsContainer)
+bronzeMedalsHeader.fontSize = 8
+bronzeMedalsHeader.value = 'Bronze: 00'
+bronzeMedalsHeader.hAlign = 'center'
+bronzeMedalsHeader.vAlign = 'center'
+bronzeMedalsHeader.color = Color4.Black()
+bronzeMedalsHeader.positionY = 20
+bronzeMedalsHeader.positionX = 2
+
+
+
+/////////////////////////////////////////
+//
+const tierContainer = new UIContainerRect(gameMenu)
+tierContainer.adaptWidth = true
+tierContainer.width = '95%'
+tierContainer.height = '12%'
+tierContainer.color = Color4.Blue()
+tierContainer.hAlign = 'center'
+tierContainer.vAlign = 'top'
+tierContainer.opacity = 1
+tierContainer.positionY = -20
+tierContainer.positionX = 0
+
+const tierHeader = new UIText(tierContainer)
+tierHeader.fontSize = 8
+tierHeader.value = 'Race Tier: '
+tierHeader.hAlign = 'left'
+tierHeader.vAlign = 'center'
+tierHeader.positionY = 20
+tierHeader.positionX = 4
+
+
+
+const goldTierContainer = new UIContainerRect(tierContainer)
+goldTierContainer.adaptWidth = true
+goldTierContainer.width = '20%'
+goldTierContainer.height = '80%'
+goldTierContainer.color = Color4.FromHexString('#F7C644FF')
+goldTierContainer.hAlign = 'center'
+goldTierContainer.vAlign = 'center'
+goldTierContainer.opacity = goldRaceTierOpacity
+goldTierContainer.positionY = 0
+goldTierContainer.positionX = -20
+
+
+const goldTierHeader = new UIText(goldTierContainer)
+goldTierHeader.fontSize = 8
+goldTierHeader.value = 'Gold'
+goldTierHeader.hAlign = 'center'
+goldTierHeader.vAlign = 'center'
+goldTierHeader.color = Color4.Black()
+goldTierHeader.positionY = 20
+goldTierHeader.positionX = 10
+
+
+const silverTierContainer = new UIContainerRect(tierContainer)
+silverTierContainer.adaptWidth = true
+silverTierContainer.width = '22%'
+silverTierContainer.height = '80%'
+silverTierContainer.color = Color4.FromHexString('#9EC6C6FF')
+silverTierContainer.hAlign = 'center'
+silverTierContainer.vAlign = 'center'
+silverTierContainer.opacity = silverRaceTierOpacity
+silverTierContainer.positionY = 0
+silverTierContainer.positionX = 22
+
+
+const silverTierHeader = new UIText(silverTierContainer)
+silverTierHeader.fontSize = 8
+silverTierHeader.value = 'Silver '
+silverTierHeader.hAlign = 'center'
+silverTierHeader.vAlign = 'center'
+silverTierHeader.color = Color4.Black()
+silverTierHeader.positionY = 20
+silverTierHeader.positionX = 10
+
+
+
+const bronzeTierContainer = new UIContainerRect(tierContainer)
+bronzeTierContainer.adaptWidth = true
+bronzeTierContainer.width = '25%'
+bronzeTierContainer.height = '80%'
+bronzeTierContainer.color = Color4.FromHexString('#F57D12FF')
+bronzeTierContainer.hAlign = 'center'
+bronzeTierContainer.vAlign = 'center'
+bronzeTierContainer.opacity = bronzeRaceTierOpacity
+bronzeTierContainer.positionY = 0
+bronzeTierContainer.positionX = 68
+
+
+const bronzeTierHeader = new UIText(bronzeTierContainer)
+bronzeTierHeader.fontSize = 8
+bronzeTierHeader.value = 'Bronze'
+bronzeTierHeader.hAlign = 'center'
+bronzeTierHeader.vAlign = 'center'
+bronzeTierHeader.color = Color4.Black()
+bronzeTierHeader.positionY = 20
+bronzeTierHeader.positionX = 10
+
+
+/////////////////////////////////////////
+//
+const balanceContainer = new UIContainerRect(gameMenu)
+balanceContainer.adaptWidth = true
+balanceContainer.width = '95%'
+balanceContainer.height = '35%'
+balanceContainer.color = Color4.Purple()
+balanceContainer.hAlign = 'center'
+balanceContainer.vAlign = 'top'
+balanceContainer.opacity = 1
+balanceContainer.positionY = -35
+balanceContainer.positionX = 0
+
+const balanceHeader = new UIText(balanceContainer)
+balanceHeader.fontSize = 8
+balanceHeader.value = 'Balance:'
+balanceHeader.hAlign = 'left'
+balanceHeader.vAlign = 'top'
+balanceHeader.positionY = 40
+balanceHeader.positionX = 6
+
+
+
+const manaBalanceContainer = new UIContainerRect(balanceContainer)
+manaBalanceContainer.adaptWidth = true
+manaBalanceContainer.width = '35%'
+manaBalanceContainer.height = '60%'
+manaBalanceContainer.color = Color4.Blue()
+manaBalanceContainer.hAlign = 'left'
+manaBalanceContainer.vAlign = 'bottom'
+manaBalanceContainer.opacity = 1
+manaBalanceContainer.positionY = 5
+manaBalanceContainer.positionX = 5
+
+const manaBalanceHeader = new UIText(manaBalanceContainer)
+manaBalanceHeader.fontSize = 8
+manaBalanceHeader.value = 'MANA:'
+manaBalanceHeader.hAlign = 'left'
+manaBalanceHeader.vAlign = 'center'
+manaBalanceHeader.positionY = 15
+manaBalanceHeader.positionX = 4
+
+
+const maticManaBalanceContainer = new UIContainerRect(balanceContainer)
+maticManaBalanceContainer.adaptWidth = true
+maticManaBalanceContainer.width = '35%'
+maticManaBalanceContainer.height = '60%'
+maticManaBalanceContainer.color = Color4.Blue()
+maticManaBalanceContainer.hAlign = 'right'
+maticManaBalanceContainer.vAlign = 'bottom'
+maticManaBalanceContainer.opacity = 1
+maticManaBalanceContainer.positionY = 5
+maticManaBalanceContainer.positionX = -5
+
+
+const maticManaBalanceHeader = new UIText(maticManaBalanceContainer)
+maticManaBalanceHeader.fontSize = 8
+maticManaBalanceHeader.value = 'Matic/MANA:'
+maticManaBalanceHeader.hAlign = 'left'
+maticManaBalanceHeader.vAlign = 'center'
+maticManaBalanceHeader.positionY = 15
+maticManaBalanceHeader.positionX = 4
+
+
+const depositButtonUp = new UIImage(maticManaBalanceContainer, resources.textureImages.gameUI)
+depositButtonUp.name = "clickable-image"
+depositButtonUp.width = "44"
+depositButtonUp.height = "24"
+depositButtonUp.sourceWidth = 236
+depositButtonUp.sourceHeight = 140
+depositButtonUp.isPointerBlocker = true
+depositButtonUp.hAlign = 'center'
+depositButtonUp.vAlign = 'center'
+depositButtonUp.positionY = -1
+depositButtonUp.positionX = -55
+depositButtonUp.sourceLeft = 92
+depositButtonUp.sourceTop = 32
+depositButtonUp.sourceWidth = 54
+depositButtonUp.sourceHeight = 32
+depositButtonUp.onClick = new OnClick(() => {
+  // DO SOMETHING
+  log('click')
+  depositInputContainer.visible = true
+  depositButtonUp.sourceTop = 0
+})
+    
+
+
+const depositCanvas = new UICanvas()
+
+const depositInputContainer = new UIContainerRect(depositCanvas)
+depositInputContainer.adaptWidth = true
+depositInputContainer.width = '35%'
+depositInputContainer.height = '45%'
+depositInputContainer.color = Color4.Blue()
+depositInputContainer.hAlign = 'center'
+depositInputContainer.vAlign = 'center'
+depositInputContainer.visible = false
+depositInputContainer.opacity = 1
+depositInputContainer.positionY = 5
+depositInputContainer.positionX = 5
+
+
+const close = new UIImage(depositInputContainer, resources.textureImages.buttonBlue)
+close.name = "clickable-image"
+close.width = "12px"
+close.height = "12px"
+close.sourceWidth = 92
+close.sourceHeight = 91
+close.vAlign = "top"
+close.hAlign = "right"
+close.isPointerBlocker = true
+close.onClick = new OnClick(() => {
+  log("clicked on the close image")
+  depositInputContainer.visible = false
+  depositInputContainer.isPointerBlocker = false
+  depositButtonUp.sourceTop = 32
+})
+
+const depositInput = new UIInputText(depositInputContainer)
+depositInput.width = "80%"
+depositInput.height = "10px"
+depositInput.vAlign = "center"
+depositInput.hAlign = "right"
+depositInput.fontSize = 8
+depositInput.placeholder = "000"
+depositInput.placeholderColor = Color4.White()
+depositInput.positionY = 0
+depositInput.positionX = -10
+depositInput.opacity = 1
+depositInput.isPointerBlocker = true
+
+depositInput.onTextSubmit = new OnTextSubmit((x) => {
+  const text = new UIText(depositInput)
+  text.value = x.text
+  text.width = "100%"
+  text.height = "20px"
+  text.vAlign = "top"
+  text.hAlign = "left"
+})
 
 
 
@@ -1387,6 +1776,9 @@ export class LoopSystem implements ISystem {
   update(){
     playersInGate = startGateArr.length
     playersRacing = stage1Arr.length
+    manaBalanceHeader.value = 'Mana:\n' + l1_l2Balance.l1.toFixed(2)
+    maticManaBalanceHeader.value = "Matic/Mana:\n" +l1_l2Balance.l2.toFixed(2)
+
     let knockoutNumber:number
 
     if (playersRacing == 0) {

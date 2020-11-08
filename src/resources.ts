@@ -50,6 +50,10 @@ export default {
     },
     sounds: {
       kalimbaNotes: {},
+    },
+    textureImages: {
+      buttonBlue: new Texture("assets/buttonBlue.png"), 
+      gameUI: new Texture("assets/gameUI.png") 
     }
   }
   
