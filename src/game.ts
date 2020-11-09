@@ -31,6 +31,10 @@ let stage5Arr = []
 let stage6Arr = []
 let finishArr = []
 
+//Payment Matic/Mana
+let l1_l2Balance:any
+let depositValue:number
+
 //stageElimination 
 let stage1EliminationNumber:number = 0
 let stage2EliminationNumber:number = 0
@@ -53,8 +57,30 @@ let goldRaceTierOpacity:number = raceTierOff
 let silverRaceTierOpacity = raceTierOff
 let bronzeRaceTierOpacity = raceTierOn
 
+let stage01ColorOff:string = '#35342FFF' 
+let stage01ColorOn:string = '#7BE329FF' 
+let stage01Color:string = '#35342FFF'
+
+let stage02ColorOff:string = '#35342FFF' 
+let stage02ColorOn:string = '#7BE329FF' 
+let stage02Color:string = '#35342FFF'
+
+let stage03ColorOff:string = '#35342FFF' 
+let stage03ColorOn:string = '#7BE329FF' 
+let stage03Color:string = '#35342FFF'
+
+let stage04ColorOff:string = '#35342FFF' 
+let stage04ColorOn:string = '#7BE329FF' 
+let stage04Color:string = '#35342FFF'
+
+let stage05ColorOff:string = '#35342FFF' 
+let stage05ColorOn:string = '#7BE329FF' 
+let stage05Color:string = '#35342FFF'
 
 
+let stage06ColorOff:string = '#35342FFF' 
+let stage06ColorOn:string = '#7BE329FF' 
+let stage06Color:string = '35342FFF'
 
 
 // identifier is passed to the triggerBoxEmitter class to send the player names to different stageArrays
@@ -134,7 +160,7 @@ const postStartGateTrigger = new TriggeredPlatform(
 const stage1GateTrigger = new TriggeredPlatform(
   resources.stadium.stage_gate, 
   new Transform({
-    position: new Vector3(3,.1,4),
+    position: new Vector3(10,2,24),
     scale: new Vector3(.5, .5, .2),
     rotation: Quaternion.Euler(180, 0, 0),
   }),
@@ -230,25 +256,6 @@ const finishLineTrigger = new TriggeredPlatform(
 
 /////////////////////////////////////////////////////////////
 //Stage gate barriers
-//
-//stage 1 barrier
-/*
-let stage_gate_barrier_01 = new Entity()
-stage_gate_barrier_01.addComponent(resources.stadium.stage_gate_barrier)
-stage_gate_barrier_01.addComponent(new Transform({position: new Vector3(0,-3,0)}))
-stage_gate_barrier_01.getComponent(GLTFShape).visible = false
-stage_gate_barrier_01.getComponent(GLTFShape).withCollisions = false
-stage_gate_barrier_01.getComponent(GLTFShape).isPointerBlocker = false
-stage_gate_barrier_01.setParent(stage1GateTrigger)
-
-//stage 1 barrier
-let stage_gate_barrier_02 = new Entity()
-stage_gate_barrier_02.addComponent(resources.stadium.stage_gate_barrier)
-stage_gate_barrier_02.addComponent(new Transform({position: new Vector3(0,-3,0)}))
-stage_gate_barrier_02.getComponent(GLTFShape).visible = false
-stage_gate_barrier_02.setParent(stage2GateTrigger)
-*/
-
 class Barrier extends Entity {
   constructor(
     model: GLTFShape,
@@ -263,18 +270,10 @@ class Barrier extends Entity {
     }
   }
 
-//if the trigger count > elimination fromula move players still in the stage1 array to spectator stand
-
-//TODO if players are still in the starting gate when the elimination is triggered the door will shut 
-//and they can wait for the next race.
-
-//IMPORTANT the 'start' Trigger is directly outside the 'staring gates' so that the subsequent gates elimination calculations
-//do not include players who start but do not leave the gates for this race. 
-//listen for 'start' msg
 sceneMessageBus.on('start', (e) => {
   let nameIndex = startGateArr.indexOf(e.stageXTrigger.result)
   stage1Arr.push(startGateArr[nameIndex])
-  
+  stage01Color = stage01ColorOn
   // remove the player from previous stage array
   startGateArr.splice(nameIndex,1)
 
@@ -303,7 +302,7 @@ sceneMessageBus.on('start', (e) => {
 //TRIGGER BROADCASTS:
 // STAGE 1 complete
 sceneMessageBus.on('stage1', (e) => {
-
+  stage01Color = stage01ColorOn
   if  (stage2Arr.length < stage1EliminationNumber) {
       let nameIndex = stage1Arr.indexOf(e.stageXTrigger.result)
       stage2Arr.push(stage1Arr[nameIndex])
@@ -525,80 +524,17 @@ nameBox.addComponent(new OnPointerDown((e) => {
     }
   ))
 
-
-const cube2 = spawnCube(6, 2.5, 4)
-
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 //MATIC
 
 //Get Player Balance
-let l1_l2Balance:any
-executeTask(async () => {await await matic.balance(playerEthAdr).then((value)=> {l1_l2Balance = value})})
-
-log('balance '+l1_l2Balance)
-const sendGtr2HB = new Entity()
-                sendGtr2HB.addComponent(new TextShape("send Gtr 2 HB"))
-                sendGtr2HB.addComponent(new Transform({
-                  position: new Vector3(0, 1, 0),
-                  rotation: Quaternion.Euler(0,0,0), 
-                  scale: new Vector3(.2, .2 , .2)
-                }))
-                sendGtr2HB.getComponent(TextShape).color = Color3.Red()
-                sendGtr2HB.getComponent(TextShape).shadowColor = Color3.Gray()
-                sendGtr2HB.getComponent(TextShape).shadowOffsetY = 1
-                sendGtr2HB.getComponent(TextShape).shadowOffsetX = -1
-                sendGtr2HB.getComponent(TextShape).isPickable = true
-                sendGtr2HB.getComponent(TextShape).billboard = false
-                sendGtr2HB.setParent(cube2)
-
-
-cube2.addComponent(new OnPointerDown(async e => {
-try {
-      await matic.sendMana(testWallet,1,true,'mainnet')
-      movePlayerTo({ x: 3, y: 0, z: 19 })
-      //broadcast that payment has been made
-    //  sceneMessageBus.emit("spawn", {greet: 'test'})
-
-      } catch (error) {
-        log(error.toString());
-    }
-   }
-))
-
-
-
-const HBcube = spawnCube(8, 2.5, 8)
-
-const hbBal = new Entity()
-                hbBal.addComponent(new TextShape("HB Balance"))
-                hbBal.addComponent(new Transform({
-                  position: new Vector3(0, 1, 0),
-                  rotation: Quaternion.Euler(0,0,0), 
-                  scale: new Vector3(.5, .5 , .5)
-                }))
-                hbBal.getComponent(TextShape).color = Color3.Red()
-                hbBal.getComponent(TextShape).shadowColor = Color3.Gray()
-                hbBal.getComponent(TextShape).shadowOffsetY = 1
-                hbBal.getComponent(TextShape).shadowOffsetX = -1
-                hbBal.getComponent(TextShape).isPickable = true
-                hbBal.getComponent(TextShape).billboard = false
-                hbBal.setParent(HBcube)
-
-
-
-HBcube.addComponent(new OnPointerDown(async e => {
-	const balance = await matic.balance(playerEthAdr)
-  log('bal:',balance)
-  
-})
-)
-
-
-
+executeTask(async () => {await matic.balance(playerEthAdr).then((value)=> {l1_l2Balance = value})})
 //
 // Static assets
+
+
 
 const floor3x7 = new Entity()
 floor3x7.addComponent(resources.stadium.statium)
@@ -1161,7 +1097,7 @@ startTextMsg.fontSize = 10
 startTextMsg.hAlign = 'center'
 startTextMsg.vAlign = 'center'
 startTextMsg.color = Color4.White()
-startTextMsg.positionY = 18
+startTextMsg.positionY = 14
 startTextMsg.positionX = 0
 
 //////////////////////////////
@@ -1170,7 +1106,7 @@ const stage01 = new UIContainerRect(progressBackground)
 stage01.adaptWidth = true
 stage01.width = '100%'
 stage01.height = '12%'
-stage01.color = Color4.Black()
+stage01.color = Color4.FromHexString(stage01Color)
 stage01.hAlign = 'center'
 stage01.vAlign = 'bottom'
 stage01.opacity = 0.8
@@ -1365,7 +1301,9 @@ endText.vAlign = 'center'
 endText.color = Color4.White()
 endText.positionY = 16
 endText.positionX = 25
-
+//
+///////////////////////////////////////////////
+//////////////////////////////////////////////
 //////////////////////////////////////////////////////
 //gameMenu
 const gameMenuContainer = new UICanvas()
@@ -1396,13 +1334,29 @@ joinButtonUp.sourceLeft = 1
 joinButtonUp.sourceTop = 70
 joinButtonUp.sourceWidth = 104
 joinButtonUp.sourceHeight = 37
-joinButtonUp.onClick = new OnClick(() => {
-  // DO SOMETHING
-  log('click')
-})
+joinButtonUp.onClick = new OnPointerDown(
+  (e)=>{
+    sceneMessageBus.emit('start', { stageXTrigger: 'start'})
+    movePlayerTo({ x: 3, y: 0, z: 19 }) 
+  }
+  
+  /*
+  async e => {
+  try {
+        await matic.sendMana(testWallet,1,true,'mainnet')
+        movePlayerTo({ x: 3, y: 0, z: 19 })
+        
+        } catch (error) {
+          log(error.toString());
+          //TODO 
+      }
+     }
+    */
+
+     )
 
 const exitButtonUp = new UIImage(gameMenu, resources.textureImages.gameUI)
-exitButtonUp.name = "clickable-image2"
+exitButtonUp.name = "clickable-image"
 exitButtonUp.width = "80"
 exitButtonUp.height = "30"
 exitButtonUp.sourceWidth = 236
@@ -1423,7 +1377,7 @@ exitButtonUp.onClick = new OnClick(() => {
     
 
 const faqButtonUp = new UIImage(gameMenu, resources.textureImages.gameUI)
-faqButtonUp.name = "clickable-image2"
+faqButtonUp.name = "clickable-image"
 faqButtonUp.width = "28"
 faqButtonUp.height = "30"
 faqButtonUp.sourceWidth = 236
@@ -1444,6 +1398,7 @@ faqButtonUp.onClick = new OnClick(() => {
     
 
 ///////////////////////////////////////////
+//MEDALS
 const medalsContainer = new UIContainerRect(gameMenu)
 medalsContainer.adaptWidth = true
 medalsContainer.width = '95%'
@@ -1536,7 +1491,7 @@ bronzeMedalsHeader.positionX = 2
 
 
 /////////////////////////////////////////
-//
+//TIER
 const tierContainer = new UIContainerRect(gameMenu)
 tierContainer.adaptWidth = true
 tierContainer.width = '95%'
@@ -1626,7 +1581,7 @@ bronzeTierHeader.positionX = 10
 
 
 /////////////////////////////////////////
-//
+//BALANCE
 const balanceContainer = new UIContainerRect(gameMenu)
 balanceContainer.adaptWidth = true
 balanceContainer.width = '95%'
@@ -1708,35 +1663,66 @@ depositButtonUp.onClick = new OnClick(() => {
   // DO SOMETHING
   log('click')
   depositInputContainer.visible = true
+  depositInputContainer.isPointerBlocker = true
   depositButtonUp.sourceTop = 0
 })
     
 
-
+////////////////////////////////////////
+//DEPOSIT Window
 const depositCanvas = new UICanvas()
 
 const depositInputContainer = new UIContainerRect(depositCanvas)
 depositInputContainer.adaptWidth = true
-depositInputContainer.width = '35%'
-depositInputContainer.height = '45%'
+depositInputContainer.width = '15%'
+depositInputContainer.height = '17%'
 depositInputContainer.color = Color4.Blue()
 depositInputContainer.hAlign = 'center'
-depositInputContainer.vAlign = 'center'
+depositInputContainer.vAlign = 'bottom'
 depositInputContainer.visible = false
 depositInputContainer.opacity = 1
-depositInputContainer.positionY = 5
-depositInputContainer.positionX = 5
+depositInputContainer.positionY = 140
+depositInputContainer.positionX = 355
 
 
-const close = new UIImage(depositInputContainer, resources.textureImages.buttonBlue)
+const depositHeader = new UIText(depositInputContainer)
+depositHeader.fontSize = 14
+depositHeader.value = 'Deposit Mana'
+depositHeader.hAlign = 'left'
+depositHeader.vAlign = 'top'
+depositHeader.positionY = 30
+depositHeader.positionX = 4
+
+const depositDescHeader = new UIText(depositInputContainer)
+depositDescHeader.fontSize = 8
+depositDescHeader.value = 'Depositing Mana to the Matic Network\nallows for cheaper GAS fees on transactions.'
+depositDescHeader.hAlign = 'left'
+depositDescHeader.vAlign = 'top'
+depositDescHeader.positionY = 10
+depositDescHeader.positionX = 4
+
+
+const depositAmtHeader = new UIText(depositInputContainer)
+depositAmtHeader.fontSize = 12
+depositAmtHeader.value = 'Deposit Amount: '
+depositAmtHeader.hAlign = 'left'
+depositAmtHeader.vAlign = 'top'
+depositAmtHeader.positionY = -10
+depositAmtHeader.positionX = 4
+
+const close = new UIImage(depositInputContainer, resources.textureImages.gameUI)
 close.name = "clickable-image"
-close.width = "12px"
-close.height = "12px"
+close.width = "22px"
+close.height = "22px"
 close.sourceWidth = 92
 close.sourceHeight = 91
 close.vAlign = "top"
 close.hAlign = "right"
 close.isPointerBlocker = true
+close.sourceLeft = 1
+close.sourceTop = 1
+close.sourceWidth = 36
+close.sourceHeight = 36
 close.onClick = new OnClick(() => {
   log("clicked on the close image")
   depositInputContainer.visible = false
@@ -1744,27 +1730,64 @@ close.onClick = new OnClick(() => {
   depositButtonUp.sourceTop = 32
 })
 
+
+
+
 const depositInput = new UIInputText(depositInputContainer)
-depositInput.width = "80%"
-depositInput.height = "10px"
+depositInput.width = "75px"
+depositInput.height = "20px"
 depositInput.vAlign = "center"
-depositInput.hAlign = "right"
-depositInput.fontSize = 8
+depositInput.hAlign = "center"
+depositInput.fontSize = 10
 depositInput.placeholder = "000"
+depositInput.vTextAlign ="center"
 depositInput.placeholderColor = Color4.White()
 depositInput.positionY = 0
-depositInput.positionX = -10
+depositInput.positionX = 43
 depositInput.opacity = 1
 depositInput.isPointerBlocker = true
 
+
 depositInput.onTextSubmit = new OnTextSubmit((x) => {
+  log(depositInput.value)
   const text = new UIText(depositInput)
   text.value = x.text
   text.width = "100%"
   text.height = "20px"
-  text.vAlign = "top"
+  text.vAlign = "center"
   text.hAlign = "left"
-})
+  depositValue = +x.text
+  log('deposit: '+text.value)
+  
+  executeTask(async () => {await matic.depositMana(depositValue,'mainnet')})
+  //await matic.depositMana(depositValue,'mainnet')
+  })
+
+
+  const depositSubmit = new UIImage(depositInputContainer, resources.textureImages.gameUI)
+  depositSubmit.name = "clickable-image"
+  depositSubmit.width = "40px"
+  depositSubmit.height = "26px"
+  depositSubmit.sourceWidth = 92
+  depositSubmit.sourceHeight = 91
+  depositSubmit.vAlign = "top"
+  depositSubmit.hAlign = "right"
+  depositSubmit.isPointerBlocker = true
+  depositSubmit.sourceLeft = 38
+  depositSubmit.sourceTop = 1
+  depositSubmit.sourceWidth = 53
+  depositSubmit.sourceHeight = 42
+  depositSubmit.positionY = -46
+  depositSubmit.positionX = -20
+
+  
+const depositDescText = new UIText(depositInputContainer)
+depositDescText.fontSize = 8
+depositDescText.value = 'Please allow 10 or more minutes for the \ntransaction to arrive on the Matic Network. '
+depositDescText.hAlign = 'left'
+depositDescText.vAlign = 'bottom'
+depositDescText.positionY = 20
+depositDescText.positionX = 4
 
 
 
@@ -1776,6 +1799,11 @@ export class LoopSystem implements ISystem {
   update(){
     playersInGate = startGateArr.length
     playersRacing = stage1Arr.length
+    /////////////////////
+    //STAGE COLOR
+    stage01.color = Color4.FromHexString(stage01Color)
+
+    //
     manaBalanceHeader.value = 'Mana:\n' + l1_l2Balance.l1.toFixed(2)
     maticManaBalanceHeader.value = "Matic/Mana:\n" +l1_l2Balance.l2.toFixed(2)
 
