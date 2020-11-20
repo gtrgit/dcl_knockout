@@ -26,6 +26,9 @@ export class TriggeredPlatform extends Entity {
         },
         () => { 
           //Exit Trigger
+          if (identifier=='enterRace'){
+            sceneMessageBus.emit('enterRace', { stageXTrigger: name})
+          }
           if (identifier=='start'){
             sceneMessageBus.emit('start', { stageXTrigger: name})
           }

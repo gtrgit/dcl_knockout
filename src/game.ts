@@ -11,13 +11,17 @@ import { TriggeredPlatform } from"./triggerBoxEmitter"
 import { TriggerBoxShape } from "../node_modules/decentraland-ecs-utils/triggers/triggerSystem"
 import { spawnBoxX } from './SpawnerFunctions'
 import { delay } from "../node_modules/@dcl/l2-utils/utils/index"
-import { LockConstraint } from "cannon"
+import { LockConstraint, Utils } from "cannon"
 import { Delay } from "../node_modules/decentraland-ecs-utils/timer/component/delay"
+import {BuilderHUD} from './BuilderHUD'
+import utils from "../node_modules/decentraland-ecs-utils/index"
+import { movePlayerTo } from '@decentraland/RestrictedActions'
+    
 
 ///////////////
 //Variables
-let testWallet = '0xC156C57182AE48CF32933A581D5Bed9A457e32cD'
-let currentPlayerName:string
+let polyGraphWallet = '0xC156C57182AE48CF32933A581D5Bed9A457e32cD'
+let currentPlayerName:any
 let playerEthAdr:string
 //let playerAtStartCount:number
 // stageArrays
@@ -57,9 +61,9 @@ let goldRaceTierOpacity:number = raceTierOff
 let silverRaceTierOpacity = raceTierOff
 let bronzeRaceTierOpacity = raceTierOn
 
-let stage01ColorOff:string = '#35342FFF' 
-let stage01ColorOn:string = '#7BE329FF' 
-let stage01Color:string = '#35342FFF'
+let stage01ColorOff:string = '#66fa39' 
+let stage01ColorOn:string = '#66fa39' 
+let stage01Color:string = '#fffefc'
 
 let stage02ColorOff:string = '#35342FFF' 
 let stage02ColorOn:string = '#7BE329FF' 
@@ -83,8 +87,44 @@ let stage06ColorOn:string = '#7BE329FF'
 let stage06Color:string = '35342FFF'
 
 
+//////////////////////////////////////////////
+//Timer vars TODO add tick
+let startTime:number = 0
+let timer: number = 1
+let minuteTimer:number = 0
+let secondsTimer:number
+let minSecTimer:string
+let timeMinSec:string
+let dt:number = 1
+
+/////////////////////////////////////////////////////
+let start_sound:AudioSource = new AudioSource(resources.sounds.airhorn)
+
+/////////////////////////////////////////////////////////////////////////
+//TELEPORT locations
+let enterRacePos = { x: 3, y: 0, z: 19 }
+let eliminateFromRacePos = { x: 2, y: 3, z: 30 } //new Vector3(2,3,30),new Vector3(4,3,4)
+let testPos = { x: 12, y: 3, z: 19 } //new Vector3(2,3,30),new Vector3(4,3,4)
+
+
+
+//////////////////////////////////
+//GAME LOOP
+let raceRunning:boolean = false
+
+let restartTimer:boolean = false
+
+let start_pos:Vector3
+let end_pos:Vector3 
+
 // identifier is passed to the triggerBoxEmitter class to send the player names to different stageArrays
 let identifier:string
+
+/////////////////////////////////////
+//game UI
+let manaPrice:number = 1
+
+
 //
 const sceneMessageBus = new MessageBus()
 
@@ -119,7 +159,7 @@ executeTask(async () => {await userData.then((value)=> {currentPlayerName= value
 //Assign this players Eth adderss and assign => playerEthAdr
 executeTask(async () => {await getPlayerEthAdr.then((value)=> {playerEthAdr= value})})
 
-
+//TODO Fix this
 //add the player name to the startGate array
 sceneMessageBus.on('startGamePlayerName', (e) => {
   startGateArr.push(e.playerName.result)
@@ -141,28 +181,36 @@ sceneMessageBus.on('player', (e) => {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //Trigger Box to fit on each gate
-const trigBox = new TriggerBoxShape(new Vector3(4,1.5,1.5), new Vector3(0,1,0))  //size, position
+const trigBox = new TriggerBoxShape(new Vector3(1,2,7), new Vector3(0,3,0))  //size, position  //NOTE CHANGE THE size if the position is changed
+const winnerTriggerBox = new TriggerBoxShape(new Vector3(3,2,3), new Vector3(0,2,0))  //size, position  //NOTE CHANGE THE size if the position is changed
+
+
 //
 //Stage 1 trigger area
 const postStartGateTrigger = new TriggeredPlatform(
   resources.stadium.stage_gate, 
   new Transform({
-    position: new Vector3(3,.1,2),
-    scale: new Vector3(.5, .5, .2),
-    rotation: Quaternion.Euler(180, 0, 0),
+    position: new Vector3(6,.5,24),
+    scale: new Vector3(1, 1, .5),
+    rotation: Quaternion.Euler(180, 90, 0),
   }),
   trigBox,
   userData,
   identifier = 'start'
 )
+
+//    Add AudioSource component to entity
+postStartGateTrigger.addComponentOrReplace(start_sound)
+      
+
 //
 //Stage 1 trigger area
 const stage1GateTrigger = new TriggeredPlatform(
   resources.stadium.stage_gate, 
   new Transform({
-    position: new Vector3(10,2,24),
-    scale: new Vector3(.5, .5, .2),
-    rotation: Quaternion.Euler(180, 0, 0),
+    position: new Vector3(97.1,13.2,43.2),
+    scale: new Vector3(.6,1,.5),
+    rotation: Quaternion.Euler(180, 90, 0),
   }),
   trigBox,
   userData,
@@ -174,9 +222,9 @@ const stage1GateTrigger = new TriggeredPlatform(
 const stage2GateTrigger = new TriggeredPlatform(
   resources.stadium.stage_gate, 
   new Transform({
-    position: new Vector3(3,.1,6),
-    scale: new Vector3(.5, .5, .2),
-    rotation: Quaternion.Euler(180, 0, 0),
+    position: new Vector3(80.5,12.5,33.5),
+    scale: new Vector3(.6,1,.5),
+    rotation: Quaternion.Euler(180, 90, 0),
   }),
   trigBox,
   userData,
@@ -189,9 +237,9 @@ const stage2GateTrigger = new TriggeredPlatform(
 const stage3GateTrigger = new TriggeredPlatform(
   resources.stadium.stage_gate, 
   new Transform({
-    position: new Vector3(3,.1,8),
-    scale: new Vector3(.5, .5, .2),
-    rotation: Quaternion.Euler(180, 0, 0),
+    position: new Vector3(64,12.5,34),
+    scale: new Vector3(.6,1,.5),
+    rotation: Quaternion.Euler(180, 90, 0),
   }),
   trigBox,
   userData,
@@ -203,9 +251,9 @@ const stage3GateTrigger = new TriggeredPlatform(
 const stage4GateTrigger = new TriggeredPlatform(
   resources.stadium.stage_gate, 
   new Transform({
-    position: new Vector3(3,.1,10),
-    scale: new Vector3(.5, .5, .2),
-    rotation: Quaternion.Euler(180, 0, 0),
+    position: new Vector3(47,12.5,34),
+    scale: new Vector3(.6,1,.5),
+    rotation: Quaternion.Euler(180, 90, 0),
   }),
   trigBox,
   userData,
@@ -217,9 +265,9 @@ const stage4GateTrigger = new TriggeredPlatform(
 const stage5GateTrigger = new TriggeredPlatform(
   resources.stadium.stage_gate, 
   new Transform({
-    position: new Vector3(3,.1,12),
-    scale: new Vector3(.5, .5, .2),
-    rotation: Quaternion.Euler(180, 0, 0),
+    position: new Vector3(29.9,12.5,34.1),
+    scale: new Vector3(.6,1,.5),
+    rotation: Quaternion.Euler(180, 90, 0),
   }),
   trigBox,
   userData,
@@ -231,13 +279,20 @@ const stage5GateTrigger = new TriggeredPlatform(
 const stage6GateTrigger = new TriggeredPlatform(
   resources.stadium.stage_gate, 
   new Transform({
-    position: new Vector3(3,.1,14),
-    scale: new Vector3(.5, .5, .2),
-    rotation: Quaternion.Euler(180, 0, 0),
+    position: new Vector3(14.9,15.6,4.8),
+    scale: new Vector3(.6,1,.5),
+    rotation: Quaternion.Euler(180, 90, 0),
   }),
   trigBox,
   userData,
   identifier = 'stage6'
+)
+
+const finish_move = new MovingPlatform(
+  resources.stadium.finish_plat,
+  new Vector3(2.5,4.5,35),
+  new Vector3(2.5,4.5,33),
+  3
 )
 
 //
@@ -245,14 +300,15 @@ const stage6GateTrigger = new TriggeredPlatform(
 const finishLineTrigger = new TriggeredPlatform(
   resources.stadium.stage_gate, 
   new Transform({
-    position: new Vector3(6,4,14),
-    scale: new Vector3(.2, .2, .2),
+    position: new Vector3(0,0,0), //20,0.5,24
+    scale: new Vector3(.38, .2, 1),
     rotation: Quaternion.Euler(180, 0, 0),
   }),
-  trigBox,
+  winnerTriggerBox,
   userData,
   identifier = 'finish'
 )
+finishLineTrigger.setParent(finish_move)
 
 /////////////////////////////////////////////////////////////
 //Stage gate barriers
@@ -270,13 +326,36 @@ class Barrier extends Entity {
     }
   }
 
-sceneMessageBus.on('start', (e) => {
-  let nameIndex = startGateArr.indexOf(e.stageXTrigger.result)
-  stage1Arr.push(startGateArr[nameIndex])
-  stage01Color = stage01ColorOn
-  // remove the player from previous stage array
-  startGateArr.splice(nameIndex,1)
+  
+  sceneMessageBus.on('open_close_start_gate', (e) => {
+    log('start gate status: '+e.gate)
+    if (e.gate=='open'){
+      log('gate is open')
+                  // Play sound
+                  start_sound.playing = true
+                  //hide ui
+                  timerRect.visible = false
 
+          start_pos = new Vector3(0,0,0)
+          end_pos = new Vector3(0,-4,0)
+          start_gate.addComponentOrReplace(new utils.MoveTransformComponent(start_pos,end_pos,2,() =>{}))
+    } 
+    if (e.gate=='close'){
+      log('gate is closed')
+              
+          start_pos = new Vector3(0,-4,0)
+          end_pos = new Vector3(0,0,0)
+          start_gate.addComponentOrReplace(new utils.MoveTransformComponent(start_pos,end_pos,2,() =>{}))
+    }
+  })
+  
+
+//TODO FIX the order of the arrarys:   (startGateArr)->(stage1Arr)->()->()->()->(finish)
+sceneMessageBus.on('enterRace', (e) => {
+  log('trigger name '+e)
+  startGateArr.push(e)
+
+  timerRect.visible = true
 
   log('(starting gate: '+startGateArr.length+')->(stage 1: '+stage1Arr.length+')')
 
@@ -287,7 +366,7 @@ sceneMessageBus.on('start', (e) => {
   stage3EliminationNumber = Math.round(stage2EliminationNumber-(stage2EliminationNumber*.2))
   stage4EliminationNumber = Math.round(stage3EliminationNumber-(stage3EliminationNumber*.2))
   stage5EliminationNumber = Math.round(stage4EliminationNumber-(stage4EliminationNumber*.2))
-  stage6EliminationNumber =  Math.round(stage5EliminationNumber-(stage5EliminationNumber*.2))
+  stage6EliminationNumber = 2// Math.round(stage5EliminationNumber-(stage5EliminationNumber*.2))
    } 
 
     if (stage1Arr.length > 0) {
@@ -297,13 +376,64 @@ sceneMessageBus.on('start', (e) => {
 
 })
 
+//TODO FIX the order of the arrarys:   (startGateArr)->(stage1Arr)->()->()->()->(finish)
+sceneMessageBus.on('start', (e) => {
+  log('trigger name '+e.stageXTrigger.result)
+  //startGateArr.push(e.stageXTrigger.result)
+
+  let nameIndex = startGateArr.indexOf(e.stageXTrigger.result)
+  stage1Arr.push(startGateArr[nameIndex])
+  //Color?? Document what this does
+  stage01Color = stage01ColorOn
+
+  // remove the player from previous stage array
+  startGateArr.splice(nameIndex,1)
+
+//todo ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //timer = 1
+  //tick = 0
+  sceneMessageBus.emit('raceRunning',{running:'false'})
+
+  log('(starting gate: '+startGateArr.length+')->(stage 1: '+stage1Arr.length+')')
+
+  //The elimination counts appear on the 
+  if (stage1Arr.length > 0) {
+  stage1EliminationNumber = Math.round(stage1Arr.length-(stage1Arr.length*.2))
+  stage2EliminationNumber = Math.round(stage1EliminationNumber-(stage1EliminationNumber*.2))
+  stage3EliminationNumber = Math.round(stage2EliminationNumber-(stage2EliminationNumber*.2))
+  stage4EliminationNumber = Math.round(stage3EliminationNumber-(stage3EliminationNumber*.2))
+  stage5EliminationNumber = Math.round(stage4EliminationNumber-(stage4EliminationNumber*.2))
+  stage6EliminationNumber =  2 //Math.round(stage5EliminationNumber-(stage5EliminationNumber*.2))
+   } 
+
+    if (stage1Arr.length > 0) {
+
+    //eliminateFromRace(startGateArr)
+    }
+   
+    /////////////////////////////////
+    //add the star_gate back in.
+    /*
+    const start_gate = new Entity()
+    start_gate.addComponent(resources.stadium.start_gate_01)
+    start_gate.addComponent(new Transform({position: new Vector3(0,0,0)}))
+    engine.addEntity(start_gate)
+    */
+})
+
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 //TRIGGER BROADCASTS:
 // STAGE 1 complete
 sceneMessageBus.on('stage1', (e) => {
+  //When the first player crosses stage1 close the start_gate
+  sceneMessageBus.emit('open_close_start_gate',{gate: 'close'})
+
+  //
+  log('trigger name 1 '+e.stageXTrigger.result)
   stage01Color = stage01ColorOn
   if  (stage2Arr.length < stage1EliminationNumber) {
+    
       let nameIndex = stage1Arr.indexOf(e.stageXTrigger.result)
       stage2Arr.push(stage1Arr[nameIndex])
       // If a player are gone through the first gate then close the start gate plrs inside will have to wait for the next race
@@ -432,7 +562,7 @@ sceneMessageBus.on('stage5', (e) => {
 
   if (stage6Arr.length == stage5EliminationNumber) {
 
-    log('(s4: '+stage4Arr.length+')->(s5: '+stage5Arr.length+')->(s6: '+stage6Arr.length+')')
+    log('(stage 5: s4: '+stage4Arr.length+')->(s5: '+stage5Arr.length+')->(s6: '+stage6Arr.length+')')
       
     let barrerV3 = new Transform({position: new Vector3(0,-4,0),scale: new Vector3(1,1.5,1)})
     let barrier01 = new Barrier(resources.stadium.stage_gate_barrier,barrerV3,stage5GateTrigger)
@@ -459,9 +589,9 @@ sceneMessageBus.on('stage6', (e) => {
 
   }
 
-  if (stage6Arr.length == stage6EliminationNumber) {
+  if (finishArr.length == stage6EliminationNumber) {
 
-    log('(s4: '+stage4Arr.length+')->(s5: '+stage5Arr.length+')->(s6: '+stage6Arr.length+')')
+    log('(s6: '+stage6Arr.length+')->(Final Knockout'+finishArr.length+')')
       
     let barrerV3 = new Transform({position: new Vector3(0,-4,0),scale: new Vector3(1,1.5,1)})
     let barrier01 = new Barrier(resources.stadium.stage_gate_barrier,barrerV3,stage6GateTrigger)
@@ -474,6 +604,7 @@ sceneMessageBus.on('stage6', (e) => {
     eliminateFromRace(stage6Arr)
   }
 })
+
 //
 sceneMessageBus.on('finish', (e) => {
   raceWinner = e.stageXTrigger.result
@@ -482,8 +613,9 @@ sceneMessageBus.on('finish', (e) => {
     
     //get eth address and transferr nft if eligible
     //sent to -> playerEthAdr
-    log('You are the Winner!!')
+    log('You are the Winner!!>')
     
+  sceneMessageBus.emit('raceRunning',{running:'false'})
 
   }
 })
@@ -493,20 +625,21 @@ sceneMessageBus.on('finish', (e) => {
 function eliminateFromRace(stageArray: any[]){
 
       stageArray.forEach(function (value){
-        log('in startArr: '+value)
+        log('to be eliminated: '+value)
 
         if (currentPlayerName == value) {
           log('match Currrent Player:  '+value)
-          movePlayerTo(new Vector3(0,20,0),new Vector3(4,3,4))
+          movePlayerTo(testPos) //eliminateFromRacePos
         }
       })
     }
 
 
-    const listLog = spawnCube(4, 2.5, 1)
-    listLog.addComponent(new OnPointerDown((e) => {
+    const listLog = spawnCube(5, 2.5, 24)
 
-      stage1Arr.forEach(function (value){
+    listLog.addComponent(new OnPointerDown((e) => {
+      
+      startGateArr.forEach(function (value){
         log('stage1 test '+value)
         if (currentPlayerName == value) {
         
@@ -517,12 +650,11 @@ function eliminateFromRace(stageArray: any[]){
   ))
 
 
-  
-const nameBox = spawnCube(2, 2.5, 1)
-nameBox.addComponent(new OnPointerDown((e) => {
- 
-    }
-  ))
+////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
+//Sounds
+// Create entity
+
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -531,8 +663,13 @@ nameBox.addComponent(new OnPointerDown((e) => {
 
 //Get Player Balance
 executeTask(async () => {await matic.balance(playerEthAdr).then((value)=> {l1_l2Balance = value})})
-//
+
+//////////////////////////////////////
 // Static assets
+const start_gate = new Entity()
+start_gate.addComponent(resources.stadium.start_gate_01)
+start_gate.addComponent(new Transform({position: new Vector3(0,0,0)}))
+engine.addEntity(start_gate)
 
 
 
@@ -575,7 +712,7 @@ engine.addEntity(c1_marker)
 
 const c2_marker = new Entity()
 c2_marker.addComponent(resources.stadium.course_marker)
-c2_marker.addComponent(new Transform({position: new Vector3(78.5,12.5,31.5),rotation: Quaternion.Euler(0,180,0)}))
+c2_marker.addComponent(new Transform({position: new Vector3(79.7,12.2,29.5),rotation: Quaternion.Euler(0,180,0)}))
 engine.addEntity(c2_marker)
 
 
@@ -586,7 +723,7 @@ engine.addEntity(c3_marker)
 
 const c4_marker = new Entity()
 c4_marker.addComponent(resources.stadium.course_marker)
-c4_marker.addComponent(new Transform({position: new Vector3(45,12.5,31.5),rotation: Quaternion.Euler(0,180,0)}))
+c4_marker.addComponent(new Transform({position: new Vector3(45.8,12.5,32.4),rotation: Quaternion.Euler(0,180,0)}))
 engine.addEntity(c4_marker)
 
 
@@ -611,53 +748,54 @@ engine.addEntity(start_gate_model)
 
 const d_move = new MovingPlatform(
   resources.stadium.sign_d,
-  new Vector3(9,11.9,20.5),
-  new Vector3(6,11.9,20.5),
+  new Vector3(9,12,20.5),
+  new Vector3(6,12,20.5),
   3
 )
 
+
 const l_move = new MovingPlatform(
   resources.stadium.sign_l,
-  new Vector3(9,11.9,20.5),
-  new Vector3(7,11.9,20.5),
+  new Vector3(9,11.4,20.5),
+  new Vector3(7,11.4,20.5),
   3
 )
 
 const n_move = new MovingPlatform(
   resources.stadium.sign_n,
-  new Vector3(9.1,11.9,20.5),
-  new Vector3(6,11.9,20.5),
+  new Vector3(9.1,11.5,20.5),
+  new Vector3(6,11.5,20.5),
   3
 )
 
 const c_move = new MovingPlatform(
   resources.stadium.sign_c_lower,
-  new Vector3(11,11.9,20.5),
-  new Vector3(5,11.9,20.5),
+  new Vector3(11,11.6,20.5),
+  new Vector3(5,11.6,20.5),
   3
 )
 
 const o2_move = new MovingPlatform(
   resources.stadium.sign_o2,
-  new Vector3(9.1,11.9,20.5),
-  new Vector3(6,11.9,20.5),
+  new Vector3(9.1,11.7,20.5),
+  new Vector3(6,11.7,20.5),
   3
 )
 
 const t_move = new MovingPlatform(
   resources.stadium.sign_t,
-  new Vector3(11,11.9,20.5),
-  new Vector3(5,11.9,20.5),
+  new Vector3(11,11.8,20.5),
+  new Vector3(5,11.8,20.5),
   3
 )
-
+/*
 const finish_move = new MovingPlatform(
   resources.stadium.finish_plat,
   new Vector3(2.5,4.5,35),
   new Vector3(2.5,4.5,33),
   3
 )
-
+*/
 ///////////////////////////////////////////////////////////////////////////////
 //
 //Bottom level obsticles
@@ -708,6 +846,8 @@ const roundabout7 = new RotatingPlatform(
   Quaternion.Euler(0, 120, 0)
 )
 
+
+//TODO remove replace with bronze silver gold medals
 const crown1 = new RotatingPlatform(
   resources.stadium.crown,
   new Transform({ position: new Vector3(0, 1,0) }),
@@ -732,7 +872,7 @@ knocker01.setParent(staticPlatform)
 
 const platform02 = new Entity()
 platform02.addComponent(resources.course01.platform)
-platform02.addComponent(new Transform({position: new Vector3(3,1.7,10),scale: new Vector3(1,.5,1)}))
+platform02.addComponent(new Transform({position: new Vector3(3,1.7,10),scale: new Vector3(1,.5,1.5)}))
 platform02.setParent(c1_marker)
 engine.addEntity(platform02)
 
@@ -750,16 +890,17 @@ knocker03.setParent(platform03)
 
 const platform04 = new Entity()
 platform04.addComponent(resources.course01.platform)
-platform04.addComponent(new Transform({position: new Vector3(3,2,26),scale: new Vector3(2,.5,2.5)}))
+platform04.addComponent(new Transform({position: new Vector3(3,2,25),scale: new Vector3(2,.5,2.5)}))
 platform04.setParent(c1_marker)
 engine.addEntity(platform04)
 
 const knocker04 = new PathedPlatform(resources.course01.knocker, path,2)
 knocker04.setParent(platform04)
 
+
 const platform05 = new Entity()
 platform05.addComponent(resources.course01.platform)
-platform05.addComponent(new Transform({position: new Vector3(12,4,17),rotation: Quaternion.Euler(0,180,0),scale: new Vector3(2,.5,2)}))
+platform05.addComponent(new Transform({position: new Vector3(12,3.8,25),rotation: Quaternion.Euler(0,180,0),scale: new Vector3(2,.5,2)}))
 platform05.setParent(c1_marker)
 engine.addEntity(platform05)
 
@@ -768,7 +909,7 @@ knocker05.setParent(platform05)
 
 const platform06 = new Entity()
 platform06.addComponent(resources.course01.platform)
-platform06.addComponent(new Transform({position: new Vector3(12,5,25),rotation: Quaternion.Euler(0,180,0),scale: new Vector3(2,.5,2)}))
+platform06.addComponent(new Transform({position: new Vector3(12,5,17),rotation: Quaternion.Euler(0,180,0),scale: new Vector3(2,.5,2)}))
 platform06.setParent(c1_marker)
 engine.addEntity(platform06)
 
@@ -777,12 +918,13 @@ knocker06.setParent(platform06)
 
 const platform07 = new Entity()
 platform07.addComponent(resources.course01.platform)
-platform07.addComponent(new Transform({position: new Vector3(12,5,12),rotation: Quaternion.Euler(0,180,0),scale: new Vector3(2,.5,2)}))
+platform07.addComponent(new Transform({position: new Vector3(12,5,8),rotation: Quaternion.Euler(0,180,0),scale: new Vector3(2,.5,2)}))
 platform07.setParent(c1_marker)
 engine.addEntity(platform07)
 
 const knocker07 = new PathedPlatform(resources.course01.knocker, path,2)
 knocker07.setParent(platform07)
+
 
 //course02 obsticles
 const whacker01 = new RotatingPlatform(
@@ -1042,809 +1184,749 @@ engine.addEntity(right_rotating_platform);
 
 
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//BUILDER HUD
+//
+// const hud:BuilderHUD =  new BuilderHUD()
+//  // hud.setDefaultParent(stage01)
+//  hud.attachToEntity(listLog)
+//
+//
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 //////////////////////////////////////////////////////////
 //UI
 
-const progressCanvas = new UICanvas()
 
-const progressContainer = new UIContainerRect(progressCanvas)
-progressContainer.adaptWidth = true
-progressContainer.width = '10%'
-progressContainer.height = '43%'
-progressContainer.positionY = 70
-progressContainer.positionX = -10
-progressContainer.color = Color4.Black()
-progressContainer.hAlign = 'right'
-progressContainer.vAlign = 'center'
-progressContainer.opacity = 0.8
-    
-
-const progressBackground = new UIContainerRect(progressContainer)
-progressBackground.adaptWidth = true
-progressBackground.width = '90%'
-progressBackground.height = '85%'
-progressBackground.positionX = 0
-progressBackground.positionY = -10
-progressBackground.color = Color4.Black()
-progressBackground.hAlign = 'center'
-progressBackground.opacity = 0.7
-
-const title = new UIText(progressContainer)
-title.fontSize = 13
-title.value = 'DCL Knockout'
-title.hAlign = 'center'
-title.vAlign = 'top'
-title.positionY = 26
-title.positionX = 0
-    
-
-const start = new UIContainerRect(progressBackground)
-start.adaptWidth = true
-start.width = '100%'
-start.height = '12%'
-//start.positionX = 2
-start.color = Color4.Purple()
-start.hAlign = 'center'
-start.vAlign = 'bottom'
-start.opacity = 1
-start.positionY = 0
+const gameUICanvas = new UICanvas()
 
 
-// Create a textShape component, setting the progressCanvas as parent
-const startTextMsg = new UIText(start)
+const gameUI = new UIImage(gameUICanvas, resources.textureImages.gameUI)
+gameUI.name = "clickable-image"
+gameUI.width = "200"
+gameUI.height = "470"
+gameUI.sourceWidth = 574
+gameUI.sourceHeight = 778
+gameUI.isPointerBlocker = true
+gameUI.hAlign = 'right'
+gameUI.vAlign = 'center'
+gameUI.positionY = 20
+gameUI.positionX = 0
+gameUI.opacity = .85
+gameUI.sourceLeft = 1
+gameUI.sourceTop = 1
+gameUI.sourceWidth = 315
+gameUI.sourceHeight = 790
+
+
+
+//////////////////////////////////////////////////
+//ENTER GAME
+const enterGameBtn = new UIImage(gameUICanvas, resources.textureImages.gameUI)
+enterGameBtn.name = "clickable-image"
+enterGameBtn.width = "164" //164
+enterGameBtn.height = "20"
+enterGameBtn.sourceWidth = 574
+enterGameBtn.sourceHeight = 805
+enterGameBtn.isPointerBlocker = true
+enterGameBtn.hAlign = 'right'
+enterGameBtn.vAlign = 'bottom'
+enterGameBtn.positionY = 185
+enterGameBtn.positionX = -12
+enterGameBtn.opacity = 1
+enterGameBtn.sourceLeft = 320
+enterGameBtn.sourceTop = 600
+enterGameBtn.sourceWidth = 255
+enterGameBtn.sourceHeight = 35
+enterGameBtn.visible = true
+enterGameBtn.onClick = new OnPointerDown(
+  async e => {
+    try {
+          await matic.sendMana(polyGraphWallet,manaPrice,true,'mainnet')
+          movePlayerTo({ x: 3, y: 0, z: 19 })
+          } catch (error) {
+            log(error.toString());
+            //TODO 
+        }
+
+        log('Emitted to msg '+currentPlayerName)
+        sceneMessageBus.emit('enterRace',currentPlayerName) //currentPlayerName
+        movePlayerTo({ x: 3, y: 0, z: 19 }) 
+        //Make the countdown container visible
+        setTimerVis(true)
+        //
+        restartTimer = true
+        //
+        raceRunning = true
+
+       }
+
+)
+
+
+/////////////////////////////////////
+//
+
+const mana2EnterTxt = new UIText(gameUICanvas)
+mana2EnterTxt.value = String(manaPrice)
+mana2EnterTxt.fontSize = 13
+mana2EnterTxt.hAlign = 'right'
+mana2EnterTxt.vAlign = 'bottom'
+mana2EnterTxt.color = Color4.Black()
+mana2EnterTxt.positionY = 186
+mana2EnterTxt.positionX = -64
+mana2EnterTxt.opacity = 1
+mana2EnterTxt.isPointerBlocker = false
+
+  
+const gameUI_gold = new UIImage(gameUI, resources.textureImages.gameUI)
+gameUI_gold.name = "clickable-image"
+gameUI_gold.width = "55"
+gameUI_gold.height = "18"
+gameUI_gold.sourceWidth = 574
+gameUI_gold.sourceHeight = 790
+gameUI_gold.isPointerBlocker = false
+gameUI_gold.hAlign = 'left'
+gameUI_gold.vAlign = 'top'
+gameUI_gold.positionY = -94
+gameUI_gold.positionX = 25
+gameUI_gold.opacity = 1
+gameUI_gold.sourceLeft = 320
+gameUI_gold.sourceTop = 160
+gameUI_gold.sourceWidth = 83
+gameUI_gold.sourceHeight = 30
+gameUI_gold.visible = true
+
+
+
+const gameUI_silver = new UIImage(gameUI, resources.textureImages.gameUI)
+gameUI_silver.name = "clickable-image"
+gameUI_silver.width = "55"
+gameUI_silver.height = "18"
+gameUI_silver.sourceWidth = 574
+gameUI_silver.sourceHeight = 790
+gameUI_silver.isPointerBlocker = false
+gameUI_silver.hAlign = 'left'
+gameUI_silver.vAlign = 'top'
+gameUI_silver.positionY = -94
+gameUI_silver.positionX = 81
+gameUI_silver.opacity = 1
+gameUI_silver.sourceLeft = 405
+gameUI_silver.sourceTop = 160
+gameUI_silver.sourceWidth = 83
+gameUI_silver.sourceHeight = 30
+gameUI_silver.visible = true
+
+
+
+const gameUI_bronze = new UIImage(gameUI, resources.textureImages.gameUI)
+gameUI_bronze.name = "clickable-image"
+gameUI_bronze.width = "55"
+gameUI_bronze.height = "18"
+gameUI_bronze.sourceWidth = 574
+gameUI_bronze.sourceHeight = 790
+gameUI_bronze.isPointerBlocker = false
+gameUI_bronze.hAlign = 'left'
+gameUI_bronze.vAlign = 'top'
+gameUI_bronze.positionY = -94
+gameUI_bronze.positionX = 135
+gameUI_bronze.opacity = 1
+gameUI_bronze.sourceLeft = 490
+gameUI_bronze.sourceTop = 160
+gameUI_bronze.sourceWidth = 83
+gameUI_bronze.sourceHeight = 30
+gameUI_bronze.visible = true
+
+
+const goldNftText = new UIText(gameUI)
+goldNftText.value = 'Gold: 99'
+goldNftText.fontSize = 9
+goldNftText.hAlign = 'left'
+goldNftText.vAlign = 'top'
+goldNftText.color = Color4.Black()
+goldNftText.positionY = -99
+goldNftText.positionX = 33
+
+
+//////////////////////////////////////////////////
+//DEPOSIT 10
+const deposit10Btn = new UIImage(gameUICanvas, resources.textureImages.gameUI)
+deposit10Btn.name = "clickable-image"
+deposit10Btn.width = "30"
+deposit10Btn.height = "25"
+deposit10Btn.sourceWidth = 574
+deposit10Btn.sourceHeight = 805
+deposit10Btn.isPointerBlocker = true
+deposit10Btn.hAlign = 'right'
+deposit10Btn.vAlign = 'bottom'
+deposit10Btn.positionY = 127
+deposit10Btn.positionX = -140
+deposit10Btn.opacity = 1
+deposit10Btn.sourceLeft = 320
+deposit10Btn.sourceTop = 680
+deposit10Btn.sourceWidth = 50
+deposit10Btn.sourceHeight = 50
+deposit10Btn.visible = true
+deposit10Btn.onClick = new OnPointerDown(
+  async ()=>{
+    log('DEPOSIT 10')
+    try {
+      await matic.depositMana(10,'mainnet')
+    } catch {log('failed to deposit')}
+  }
+)
+
+
+//////////////////////////////////////////////////
+//DEPOSIT 50
+const deposit50Btn = new UIImage(gameUICanvas, resources.textureImages.gameUI)
+deposit50Btn.name = "clickable-image"
+deposit50Btn.width = "30"
+deposit50Btn.height = "25"
+deposit50Btn.sourceWidth = 574
+deposit50Btn.sourceHeight = 805
+deposit50Btn.isPointerBlocker = true
+deposit50Btn.hAlign = 'right'
+deposit50Btn.vAlign = 'bottom'
+deposit50Btn.positionY = 127
+deposit50Btn.positionX = -107
+deposit50Btn.opacity = 1
+deposit50Btn.sourceLeft = 373
+deposit50Btn.sourceTop = 680
+deposit50Btn.sourceWidth = 50
+deposit50Btn.sourceHeight = 50
+deposit50Btn.visible = true
+deposit50Btn.onClick = new OnPointerDown(
+  async ()=>{
+    log('DEPOSIT 50')
+    try {
+      await matic.depositMana(50,'mainnet')
+    } catch {log('failed to deposit')}
+  }
+)
+
+//////////////////////////////////////////////////
+//DEPOSIT 100
+const deposit100Btn = new UIImage(gameUICanvas, resources.textureImages.gameUI)
+deposit100Btn.name = "clickable-image"
+deposit100Btn.width = "30"
+deposit100Btn.height = "25"
+deposit100Btn.sourceWidth = 574
+deposit100Btn.sourceHeight = 805
+deposit100Btn.isPointerBlocker = true
+deposit100Btn.hAlign = 'right'
+deposit100Btn.vAlign = 'bottom'
+deposit100Btn.positionY = 127
+deposit100Btn.positionX = -73
+deposit100Btn.opacity = 1
+deposit100Btn.sourceLeft = 425
+deposit100Btn.sourceTop = 680
+deposit100Btn.sourceWidth = 50
+deposit100Btn.sourceHeight = 50
+deposit100Btn.visible = true
+deposit100Btn.onClick = new OnPointerDown(
+  async ()=>{
+    log('DEPOSIT 100')
+    try {
+      await matic.depositMana(100,'mainnet')
+    } catch {log('failed to deposit')}
+  }
+)
+
+
+//////////////////////////////////////////////////
+//DEPOSIT 1000
+const deposit1000Btn = new UIImage(gameUICanvas, resources.textureImages.gameUI)
+deposit1000Btn.name = "clickable-image"
+deposit1000Btn.width = "30"
+deposit1000Btn.height = "25"
+deposit1000Btn.sourceWidth = 574
+deposit1000Btn.sourceHeight = 805
+deposit1000Btn.isPointerBlocker = true
+deposit1000Btn.hAlign = 'right'
+deposit1000Btn.vAlign = 'bottom'
+deposit1000Btn.positionY = 127
+deposit1000Btn.positionX = -40
+deposit1000Btn.opacity = 1
+deposit1000Btn.sourceLeft = 477
+deposit1000Btn.sourceTop = 680
+deposit1000Btn.sourceWidth = 50
+deposit1000Btn.sourceHeight = 50
+deposit1000Btn.visible = true
+deposit1000Btn.onClick = new OnPointerDown(
+  async ()=>{
+    log('DEPOSIT 10')
+    try {
+      await matic.depositMana(1000,'mainnet')
+    } catch {log('failed to deposit')}
+  }
+)
+
+//////////////////////////////////////////////////
+//DEPOSIT Info
+const depositInfoBtn = new UIImage(gameUICanvas, resources.textureImages.gameUI)
+depositInfoBtn.name = "clickable-image"
+depositInfoBtn.width = "20"
+depositInfoBtn.height = "25"
+depositInfoBtn.sourceWidth = 574
+depositInfoBtn.sourceHeight = 805
+depositInfoBtn.isPointerBlocker = true
+depositInfoBtn.hAlign = 'right'
+depositInfoBtn.vAlign = 'bottom'
+depositInfoBtn.positionY = 127
+depositInfoBtn.positionX = -15
+depositInfoBtn.opacity = 1
+depositInfoBtn.sourceLeft = 530
+depositInfoBtn.sourceTop = 680
+depositInfoBtn.sourceWidth = 30
+depositInfoBtn.sourceHeight = 50
+depositInfoBtn.visible = true
+depositInfoBtn.onClick = new OnPointerDown(
+  (e)=>{
+    log('DEPOSIT info')
+   
+  }
+)
+
+//////////////////////////////////////////////////
+//Race TIER Info
+const tierInfoBtn = new UIImage(gameUICanvas, resources.textureImages.gameUI)
+tierInfoBtn.name = "clickable-image"
+tierInfoBtn.width = "20"
+tierInfoBtn.height = "25"
+tierInfoBtn.sourceWidth = 574
+tierInfoBtn.sourceHeight = 805
+tierInfoBtn.isPointerBlocker = true
+tierInfoBtn.hAlign = 'right'
+tierInfoBtn.vAlign = 'top'
+tierInfoBtn.positionY = -119
+tierInfoBtn.positionX = -12
+tierInfoBtn.opacity = 1
+tierInfoBtn.sourceLeft = 530
+tierInfoBtn.sourceTop = 680
+tierInfoBtn.sourceWidth = 30
+tierInfoBtn.sourceHeight = 50
+tierInfoBtn.visible = true
+tierInfoBtn.onClick = new OnPointerDown(
+  (e)=>{
+    log('DEPOSIT tier info')
+   
+  }
+)
+
+
+const silverNftText = new UIText(gameUI)
+silverNftText.value = 'Silver: 99'
+silverNftText.fontSize = 9
+silverNftText.hAlign = 'left'
+silverNftText.vAlign = 'top'
+silverNftText.color = Color4.Black()
+silverNftText.positionY = -99
+silverNftText.positionX = 85
+
+const bronzeNftText = new UIText(gameUI)
+bronzeNftText.value = 'Bronze: 99'
+bronzeNftText.fontSize = 9
+bronzeNftText.hAlign = 'left'
+bronzeNftText.vAlign = 'top'
+bronzeNftText.color = Color4.Black()
+bronzeNftText.positionY = -99
+bronzeNftText.positionX = 137
+
+//
+const startTextMsg = new UIText(gameUI)
 startTextMsg.value = 'Players in Race: '+playersInGate
-startTextMsg.fontSize = 10
+startTextMsg.fontSize = 13
 startTextMsg.hAlign = 'center'
-startTextMsg.vAlign = 'center'
-startTextMsg.color = Color4.White()
-startTextMsg.positionY = 14
+startTextMsg.vAlign = 'bottom'
+startTextMsg.color = Color4.Black()
+startTextMsg.positionY = 132
 startTextMsg.positionX = 0
 
+//L2
+const maticBalanceTxt = new UIText(gameUI)
+maticBalanceTxt.value = '(L2) Matic/Mana Balance:'+playersInGate
+maticBalanceTxt.fontSize = 9
+maticBalanceTxt.hAlign = 'center'
+maticBalanceTxt.vAlign = 'bottom'
+maticBalanceTxt.color = Color4.Black()
+maticBalanceTxt.positionY = 79
+maticBalanceTxt.positionX = -20
+
+//L1
+const manaBalanceTxt = new UIText(gameUI)
+manaBalanceTxt.value = '(L1) Mana Balance:'+playersInGate
+manaBalanceTxt.fontSize = 9
+manaBalanceTxt.hAlign = 'center'
+manaBalanceTxt.vAlign = 'bottom'
+manaBalanceTxt.color = Color4.Black()
+manaBalanceTxt.positionY = 7
+manaBalanceTxt.positionX = -20
+
+
 //////////////////////////////
-//STAGE 1
-const stage01 = new UIContainerRect(progressBackground)
-stage01.adaptWidth = true
-stage01.width = '100%'
-stage01.height = '12%'
-stage01.color = Color4.FromHexString(stage01Color)
-stage01.hAlign = 'center'
-stage01.vAlign = 'bottom'
-stage01.opacity = 0.8
-stage01.positionY = 32
+//STAGE 1 UI
+
+const stage01Container = new UIContainerRect(gameUI)
+stage01Container.adaptWidth = true
+stage01Container.width = '80%'
+stage01Container.height = '3.5%'
+stage01Container.color = Color4.White()
+stage01Container.hAlign = 'center'
+stage01Container.vAlign = 'bottom'
+stage01Container.opacity = 
+stage01Container.positionY = 168
+stage01Container.positionX = 7
+stage01Container.opacity = 1
 
 
-const stage01Msg = new UIText(stage01)
+const stage01Msg = new UIText(stage01Container)
 stage01Msg.value = 'Stage 1: '+playersInGate
 stage01Msg.fontSize = 13
 stage01Msg.hAlign = 'center'
-stage01Msg.vAlign = 'center'
-stage01Msg.color = Color4.White()
-stage01Msg.positionY = 23
-stage01Msg.positionX = 0
+stage01Msg.vAlign = 'bottom'
+stage01Msg.color = Color4.Black()
+stage01Msg.positionY = 0
+stage01Msg.positionX = 5
 
-const s1Elimination = new UIText(stage01)
-s1Elimination.value = 'To be eliminated:'+playersInGate
-s1Elimination.fontSize = 10
-s1Elimination.hAlign = 'center'
-s1Elimination.vAlign = 'center'
-s1Elimination.color = Color4.White()
-s1Elimination.positionY = 12
-s1Elimination.positionX = 0
+///////////////////////
+//STAGE 2 UI
 
-//////////////////////////////
-//STAGE 2
-const stage02 = new UIContainerRect(progressBackground)
-stage02.adaptWidth = true
-stage02.width = '100%'
-stage02.height = '12%'
-stage02.color = Color4.Black()
-stage02.hAlign = 'center'
-stage02.vAlign = 'bottom'
-stage02.opacity = 0.8
-stage02.positionY = 63
+const stage02Container = new UIContainerRect(gameUI)
+stage02Container.adaptWidth = true
+stage02Container.width = '80%'
+stage02Container.height = '3.5%'
+stage02Container.color = Color4.White()
+stage02Container.hAlign = 'center'
+stage02Container.vAlign = 'bottom'
+stage02Container.opacity = 
+stage02Container.positionY = 188
+stage02Container.positionX = 7
 
-const stage02Msg = new UIText(stage02)
+
+const stage02Msg = new UIText(stage02Container)
 stage02Msg.value = 'Stage 2: '+playersInGate
 stage02Msg.fontSize = 13
 stage02Msg.hAlign = 'center'
-stage02Msg.vAlign = 'center'
-stage02Msg.color = Color4.White()
-stage02Msg.positionY = 23
-stage02Msg.positionX = 0
+stage02Msg.vAlign = 'bottom'
+stage02Msg.color = Color4.Black()
+stage02Msg.positionY = 0
+stage02Msg.positionX = 5
 
-const s2Elimination = new UIText(stage02)
-s2Elimination.value = 'To be eliminated:'+playersInGate
-s2Elimination.fontSize = 10
-s2Elimination.hAlign = 'center'
-s2Elimination.vAlign = 'center'
-s2Elimination.color = Color4.White()
-s2Elimination.positionY = 12
-s2Elimination.positionX = 0
 
-//////////////////////////////
-//STAGE 3
-const stage03 = new UIContainerRect(progressBackground)
-stage03.adaptWidth = true
-stage03.width = '100%'
-stage03.height = '12%'
-stage03.color = Color4.Black()
-stage03.hAlign = 'center'
-stage03.vAlign = 'bottom'
-stage03.opacity = 0.8
-stage03.positionY = 93
+///////////////////////
+//STAGE 3 UI
 
-const stage03Msg = new UIText(stage03)
+const stage03Container = new UIContainerRect(gameUI)
+stage03Container.adaptWidth = true
+stage03Container.width = '80%'
+stage03Container.height = '3.5%'
+stage03Container.color = Color4.White()
+stage03Container.hAlign = 'center'
+stage03Container.vAlign = 'bottom'
+stage03Container.opacity = 
+stage03Container.positionY = 208
+stage03Container.positionX = 7
+
+
+const stage03Msg = new UIText(stage03Container)
 stage03Msg.value = 'Stage 3: '+playersInGate
 stage03Msg.fontSize = 13
 stage03Msg.hAlign = 'center'
-stage03Msg.vAlign = 'center'
-stage03Msg.color = Color4.White()
-stage03Msg.positionY = 23
-stage03Msg.positionX = 0
+stage03Msg.vAlign = 'bottom'
+stage03Msg.color = Color4.Black()
+stage03Msg.positionY = 0
+stage03Msg.positionX = 5
 
-const s3Elimination = new UIText(stage03)
-s3Elimination.value = 'To be eliminated:'+playersInGate
-s3Elimination.fontSize = 10
-s3Elimination.hAlign = 'center'
-s3Elimination.vAlign = 'center'
-s3Elimination.color = Color4.White()
-s3Elimination.positionY = 12
-s3Elimination.positionX = 0
+///////////////////////
+//STAGE 4 UI
 
-//////////////////////////////
-//STAGE 4
-const stage04 = new UIContainerRect(progressBackground)
-stage04.adaptWidth = true
-stage04.width = '100%'
-stage04.height = '12%'
-stage04.color = Color4.Black()
-stage04.hAlign = 'center'
-stage04.vAlign = 'bottom'
-stage04.opacity = 0.8
-stage04.positionY = 123
+const stage04Container = new UIContainerRect(gameUI)
+stage04Container.adaptWidth = true
+stage04Container.width = '80%'
+stage04Container.height = '3.5%'
+stage04Container.color = Color4.White()
+stage04Container.hAlign = 'center'
+stage04Container.vAlign = 'bottom'
+stage04Container.opacity = 
+stage04Container.positionY = 228
+stage04Container.positionX = 7
 
-const stage04Msg = new UIText(stage04)
+
+const stage04Msg = new UIText(stage04Container)
 stage04Msg.value = 'Stage 4: '+playersInGate
 stage04Msg.fontSize = 13
 stage04Msg.hAlign = 'center'
-stage04Msg.vAlign = 'center'
-stage04Msg.color = Color4.White()
-stage04Msg.positionY = 23
-stage04Msg.positionX = 0
+stage04Msg.vAlign = 'bottom'
+stage04Msg.color = Color4.Black()
+stage04Msg.positionY = 0
+stage04Msg.positionX = 5
 
-const s4Elimination = new UIText(stage04)
-s4Elimination.value = 'To be eliminated:'+playersInGate
-s4Elimination.fontSize = 10
-s4Elimination.hAlign = 'center'
-s4Elimination.vAlign = 'center'
-s4Elimination.color = Color4.White()
-s4Elimination.positionY = 12
-s4Elimination.positionX = 0
+///////////////////////
+//STAGE 5 UI
 
-//////////////////////////////
-//STAGE 5
-const stage05 = new UIContainerRect(progressBackground)
-stage05.adaptWidth = true
-stage05.width = '100%'
-stage05.height = '12%'
-stage05.color = Color4.Black()
-stage05.hAlign = 'center'
-stage05.vAlign = 'bottom'
-stage05.opacity = 0.8
-stage05.positionY = 153
+const stage05Container = new UIContainerRect(gameUI)
+stage05Container.adaptWidth = true
+stage05Container.width = '80%'
+stage05Container.height = '3.5%'
+stage05Container.color = Color4.White()
+stage05Container.hAlign = 'center'
+stage05Container.vAlign = 'bottom'
+stage05Container.opacity = 
+stage05Container.positionY = 248
+stage05Container.positionX = 7
 
-const stage05Msg = new UIText(stage05)
+
+const stage05Msg = new UIText(stage05Container)
 stage05Msg.value = 'Stage 5: '+playersInGate
 stage05Msg.fontSize = 13
 stage05Msg.hAlign = 'center'
-stage05Msg.vAlign = 'center'
-stage05Msg.color = Color4.White()
-stage05Msg.positionY = 23
-stage05Msg.positionX = 0
+stage05Msg.vAlign = 'bottom'
+stage05Msg.color = Color4.Black()
+stage05Msg.positionY = 0
+stage05Msg.positionX = 5
 
-const s5Elimination = new UIText(stage05)
-s5Elimination.value = 'To be eliminated:'+playersInGate
-s5Elimination.fontSize = 10
-s5Elimination.hAlign = 'center'
-s5Elimination.vAlign = 'center'
-s5Elimination.color = Color4.White()
-s5Elimination.positionY = 12
-s5Elimination.positionX = 0
 
-//////////////////////////////
-//STAGE 6
-const stage06 = new UIContainerRect(progressBackground)
-stage06.adaptWidth = true
-stage06.width = '100%'
-stage06.height = '12%'
-stage06.color = Color4.Black()
-stage06.hAlign = 'center'
-stage06.vAlign = 'bottom'
-stage06.opacity = 0.8
-stage06.positionY = 183
+///////////////////////
+//STAGE 6 UI
 
-const stage06Msg = new UIText(stage06)
+const stage06Container = new UIContainerRect(gameUI)
+stage06Container.adaptWidth = true
+stage06Container.width = '80%'
+stage06Container.height = '3.5%'
+stage06Container.color = Color4.White()
+stage06Container.hAlign = 'center'
+stage06Container.vAlign = 'bottom'
+stage06Container.opacity = 
+stage06Container.positionY = 268
+stage06Container.positionX = 7
+
+
+const stage06Msg = new UIText(stage06Container)
 stage06Msg.value = 'Stage 6: '+playersInGate
 stage06Msg.fontSize = 13
 stage06Msg.hAlign = 'center'
-stage06Msg.vAlign = 'center'
-stage06Msg.color = Color4.White()
-stage06Msg.positionY = 23
-stage06Msg.positionX = 0
+stage06Msg.vAlign = 'bottom'
+stage06Msg.color = Color4.Black()
+stage06Msg.positionY = 0
+stage06Msg.positionX = 5
 
-const s6Elimination = new UIText(stage06)
-s6Elimination.value = 'To be eliminated:'+playersInGate
-s6Elimination.fontSize = 10
-s6Elimination.hAlign = 'center'
-s6Elimination.vAlign = 'center'
-s6Elimination.color = Color4.White()
-s6Elimination.positionY = 12
-s6Elimination.positionX = 0
-
-
-const end = new UIContainerRect(progressBackground)
-end.adaptWidth = true
-end.width = '100%'
-end.height = '10%'
-//end.positionX = 2
-end.color = Color4.Purple()
-end.hAlign = 'center'
-end.vAlign = 'top'
-end.opacity = 1
-//sprogressa.positionY = 42
-
-const endText = new UIText(end)
-endText.value = 'Finish'
-endText.fontSize = 15
-endText.hAlign = 'center'
-endText.vAlign = 'center'
-endText.color = Color4.White()
-endText.positionY = 16
-endText.positionX = 25
-//
 ///////////////////////////////////////////////
-//////////////////////////////////////////////
-//////////////////////////////////////////////////////
-//gameMenu
-const gameMenuContainer = new UICanvas()
+///////////////////////////////////////////////
+//Timer UI
 
-const gameMenu = new UIContainerRect(gameMenuContainer)
-gameMenu.adaptWidth = true
-gameMenu.width = '15%'
-gameMenu.height = '17%'
-gameMenu.positionY = 140
-gameMenu.positionX = -4
-gameMenu.color = Color4.Black()
-gameMenu.hAlign = 'right'
-gameMenu.vAlign = 'bottom'
-gameMenu.opacity = 0.9
 
-const joinButtonUp = new UIImage(gameMenu, resources.textureImages.gameUI)
-joinButtonUp.name = "clickable-image"
-joinButtonUp.width = "80"
-joinButtonUp.height = "30"
-joinButtonUp.sourceWidth = 236
-joinButtonUp.sourceHeight = 140
-joinButtonUp.isPointerBlocker = true
-joinButtonUp.hAlign = 'left'
-joinButtonUp.vAlign = 'bottom'
-joinButtonUp.positionY = 5
-joinButtonUp.positionX = 5
-joinButtonUp.sourceLeft = 1
-joinButtonUp.sourceTop = 70
-joinButtonUp.sourceWidth = 104
-joinButtonUp.sourceHeight = 37
-joinButtonUp.onClick = new OnPointerDown(
-  (e)=>{
-    sceneMessageBus.emit('start', { stageXTrigger: 'start'})
-    movePlayerTo({ x: 3, y: 0, z: 19 }) 
-  }
+const timerContainer = new UICanvas()
+
+const timerRect = new UIContainerRect(timerContainer)
+timerRect.adaptWidth = true
+timerRect.width = '30%'
+timerRect.height = '6%'
+timerRect.positionY = 140
+timerRect.positionX = -4
+timerRect.color = Color4.Black()
+timerRect.hAlign = 'center'
+timerRect.vAlign = 'bottom'
+timerRect.opacity = 0.9
+timerRect.visible = false
+
+
+const timerHeader = new UIText(timerRect)
+timerHeader.fontSize = 16
+timerHeader.value = '``: '
+timerHeader.hAlign = 'center'
+timerHeader.vAlign = 'bottom'
+timerHeader.color = Color4.White()
+timerHeader.positionY = 8
+timerHeader.positionX = -40
+
+
+////////////////////////////////////////////
+//TIMER Ticks
+
+let timerCountDown:number = 13
+
+sceneMessageBus.on('timerTick', (e) => {
+  // log('timer: '+e.tick)
+ 
+  timerCountDown =  12 - e.tick
+  timerHeader.value = 'Next Race starting in : '+timerCountDown
+  // log('timer: '+timerCountDown)
+  //sceneMessageBus.emit('raceRunning',{running:'true'})
+
+        if (timerCountDown==0) {
+
+          //msg gate is open
+          sceneMessageBus.emit('open_close_start_gate',{gate: 'open'})
+          timerRect.visible = false
+          //
+          //sceneMessageBus.emit('nextRaceStartingTimer',{tick: tick, timerVisible: false,currentPlayerName: currentPlayerName})
+          
+            sceneMessageBus.emit('raceRunning',{running:'true'}) 
+        }
+  })  
+
+
+  sceneMessageBus.on('raceRunning', (e) => {
+    raceRunning = e.running
+    log('running?: '+e.running)
   
-  /*
-  async e => {
-  try {
-        await matic.sendMana(testWallet,1,true,'mainnet')
-        movePlayerTo({ x: 3, y: 0, z: 19 })
-        
-        } catch (error) {
-          log(error.toString());
-          //TODO 
-      }
-     }
-    */
-
-     )
-
-const exitButtonUp = new UIImage(gameMenu, resources.textureImages.gameUI)
-exitButtonUp.name = "clickable-image"
-exitButtonUp.width = "80"
-exitButtonUp.height = "30"
-exitButtonUp.sourceWidth = 236
-exitButtonUp.sourceHeight = 140
-exitButtonUp.isPointerBlocker = true
-exitButtonUp.hAlign = 'right'
-exitButtonUp.vAlign = 'bottom'
-exitButtonUp.positionY = 4
-exitButtonUp.positionX = -32
-exitButtonUp.sourceLeft = 105
-exitButtonUp.sourceTop = 71
-exitButtonUp.sourceWidth = 95
-exitButtonUp.sourceHeight = 36
-exitButtonUp.onClick = new OnClick(() => {
-  // DO SOMETHING
-  log('click')
-})
-    
-
-const faqButtonUp = new UIImage(gameMenu, resources.textureImages.gameUI)
-faqButtonUp.name = "clickable-image"
-faqButtonUp.width = "28"
-faqButtonUp.height = "30"
-faqButtonUp.sourceWidth = 236
-faqButtonUp.sourceHeight = 140
-faqButtonUp.isPointerBlocker = true
-faqButtonUp.hAlign = 'right'
-faqButtonUp.vAlign = 'bottom'
-faqButtonUp.positionY = 4
-faqButtonUp.positionX = -4
-faqButtonUp.sourceLeft = 200
-faqButtonUp.sourceTop = 71
-faqButtonUp.sourceWidth = 36
-faqButtonUp.sourceHeight = 36
-faqButtonUp.onClick = new OnClick(() => {
-  // DO SOMETHING
-  log('click')
-})
-    
-
-///////////////////////////////////////////
-//MEDALS
-const medalsContainer = new UIContainerRect(gameMenu)
-medalsContainer.adaptWidth = true
-medalsContainer.width = '95%'
-medalsContainer.height = '12%'
-medalsContainer.color = Color4.Purple()
-medalsContainer.hAlign = 'center'
-medalsContainer.vAlign = 'top'
-medalsContainer.opacity = 1
-medalsContainer.positionY = -5
-medalsContainer.positionX = 0
-
-const gameMenuHeader = new UIText(medalsContainer)
-gameMenuHeader.fontSize = 8
-gameMenuHeader.value = 'Medals: '
-gameMenuHeader.hAlign = 'left'
-gameMenuHeader.vAlign = 'center'
-gameMenuHeader.color = Color4.White()
-gameMenuHeader.positionY = 20
-gameMenuHeader.positionX = 4
-
-
-
-const goldMedalsContainer = new UIContainerRect(medalsContainer)
-goldMedalsContainer.adaptWidth = true
-goldMedalsContainer.width = '20%'
-goldMedalsContainer.height = '75%'
-goldMedalsContainer.color = Color4.FromHexString('#F7C644FF')
-goldMedalsContainer.hAlign = 'center'
-goldMedalsContainer.vAlign = 'center'
-goldMedalsContainer.opacity = 1
-goldMedalsContainer.positionY = 0
-goldMedalsContainer.positionX = -19
-
-
-const goldMedalsHeader = new UIText(goldMedalsContainer)
-goldMedalsHeader.fontSize = 8
-goldMedalsHeader.value = 'Gold: 00 '
-goldMedalsHeader.hAlign = 'center'
-goldMedalsHeader.vAlign = 'center'
-goldMedalsHeader.color = Color4.Black()
-goldMedalsHeader.positionY = 20
-goldMedalsHeader.positionX = 2
-
-
-
-const silverMedalsContainer = new UIContainerRect(medalsContainer)
-silverMedalsContainer.adaptWidth = true
-silverMedalsContainer.width = '22%'
-silverMedalsContainer.height = '75%'
-silverMedalsContainer.color = Color4.FromHexString('#9EC6C6FF')
-silverMedalsContainer.hAlign = 'center'
-silverMedalsContainer.vAlign = 'center'
-silverMedalsContainer.opacity = 1
-silverMedalsContainer.positionY = 0
-silverMedalsContainer.positionX = 22
-
-
-const silverMedalsHeader = new UIText(silverMedalsContainer)
-silverMedalsHeader.fontSize = 8
-silverMedalsHeader.value = 'Silver: 00'
-silverMedalsHeader.hAlign = 'center'
-silverMedalsHeader.vAlign = 'center'
-silverMedalsHeader.color = Color4.Black()
-silverMedalsHeader.positionY = 20
-silverMedalsHeader.positionX = 2
-
-
-
-const bronzeMedalsContainer = new UIContainerRect(medalsContainer)
-bronzeMedalsContainer.adaptWidth = true
-bronzeMedalsContainer.width = '25%'
-bronzeMedalsContainer.height = '75%'
-bronzeMedalsContainer.color = Color4.FromHexString('#F57D12FF')
-bronzeMedalsContainer.hAlign = 'center'
-bronzeMedalsContainer.vAlign = 'center'
-bronzeMedalsContainer.opacity = 1
-bronzeMedalsContainer.positionY = 0
-bronzeMedalsContainer.positionX = 68
-
-
-const bronzeMedalsHeader = new UIText(bronzeMedalsContainer)
-bronzeMedalsHeader.fontSize = 8
-bronzeMedalsHeader.value = 'Bronze: 00'
-bronzeMedalsHeader.hAlign = 'center'
-bronzeMedalsHeader.vAlign = 'center'
-bronzeMedalsHeader.color = Color4.Black()
-bronzeMedalsHeader.positionY = 20
-bronzeMedalsHeader.positionX = 2
-
-
-
-/////////////////////////////////////////
-//TIER
-const tierContainer = new UIContainerRect(gameMenu)
-tierContainer.adaptWidth = true
-tierContainer.width = '95%'
-tierContainer.height = '12%'
-tierContainer.color = Color4.Blue()
-tierContainer.hAlign = 'center'
-tierContainer.vAlign = 'top'
-tierContainer.opacity = 1
-tierContainer.positionY = -20
-tierContainer.positionX = 0
-
-const tierHeader = new UIText(tierContainer)
-tierHeader.fontSize = 8
-tierHeader.value = 'Race Tier: '
-tierHeader.hAlign = 'left'
-tierHeader.vAlign = 'center'
-tierHeader.positionY = 20
-tierHeader.positionX = 4
-
-
-
-const goldTierContainer = new UIContainerRect(tierContainer)
-goldTierContainer.adaptWidth = true
-goldTierContainer.width = '20%'
-goldTierContainer.height = '80%'
-goldTierContainer.color = Color4.FromHexString('#F7C644FF')
-goldTierContainer.hAlign = 'center'
-goldTierContainer.vAlign = 'center'
-goldTierContainer.opacity = goldRaceTierOpacity
-goldTierContainer.positionY = 0
-goldTierContainer.positionX = -20
-
-
-const goldTierHeader = new UIText(goldTierContainer)
-goldTierHeader.fontSize = 8
-goldTierHeader.value = 'Gold'
-goldTierHeader.hAlign = 'center'
-goldTierHeader.vAlign = 'center'
-goldTierHeader.color = Color4.Black()
-goldTierHeader.positionY = 20
-goldTierHeader.positionX = 10
-
-
-const silverTierContainer = new UIContainerRect(tierContainer)
-silverTierContainer.adaptWidth = true
-silverTierContainer.width = '22%'
-silverTierContainer.height = '80%'
-silverTierContainer.color = Color4.FromHexString('#9EC6C6FF')
-silverTierContainer.hAlign = 'center'
-silverTierContainer.vAlign = 'center'
-silverTierContainer.opacity = silverRaceTierOpacity
-silverTierContainer.positionY = 0
-silverTierContainer.positionX = 22
-
-
-const silverTierHeader = new UIText(silverTierContainer)
-silverTierHeader.fontSize = 8
-silverTierHeader.value = 'Silver '
-silverTierHeader.hAlign = 'center'
-silverTierHeader.vAlign = 'center'
-silverTierHeader.color = Color4.Black()
-silverTierHeader.positionY = 20
-silverTierHeader.positionX = 10
-
-
-
-const bronzeTierContainer = new UIContainerRect(tierContainer)
-bronzeTierContainer.adaptWidth = true
-bronzeTierContainer.width = '25%'
-bronzeTierContainer.height = '80%'
-bronzeTierContainer.color = Color4.FromHexString('#F57D12FF')
-bronzeTierContainer.hAlign = 'center'
-bronzeTierContainer.vAlign = 'center'
-bronzeTierContainer.opacity = bronzeRaceTierOpacity
-bronzeTierContainer.positionY = 0
-bronzeTierContainer.positionX = 68
-
-
-const bronzeTierHeader = new UIText(bronzeTierContainer)
-bronzeTierHeader.fontSize = 8
-bronzeTierHeader.value = 'Bronze'
-bronzeTierHeader.hAlign = 'center'
-bronzeTierHeader.vAlign = 'center'
-bronzeTierHeader.color = Color4.Black()
-bronzeTierHeader.positionY = 20
-bronzeTierHeader.positionX = 10
-
-
-/////////////////////////////////////////
-//BALANCE
-const balanceContainer = new UIContainerRect(gameMenu)
-balanceContainer.adaptWidth = true
-balanceContainer.width = '95%'
-balanceContainer.height = '35%'
-balanceContainer.color = Color4.Purple()
-balanceContainer.hAlign = 'center'
-balanceContainer.vAlign = 'top'
-balanceContainer.opacity = 1
-balanceContainer.positionY = -35
-balanceContainer.positionX = 0
-
-const balanceHeader = new UIText(balanceContainer)
-balanceHeader.fontSize = 8
-balanceHeader.value = 'Balance:'
-balanceHeader.hAlign = 'left'
-balanceHeader.vAlign = 'top'
-balanceHeader.positionY = 40
-balanceHeader.positionX = 6
-
-
-
-const manaBalanceContainer = new UIContainerRect(balanceContainer)
-manaBalanceContainer.adaptWidth = true
-manaBalanceContainer.width = '35%'
-manaBalanceContainer.height = '60%'
-manaBalanceContainer.color = Color4.Blue()
-manaBalanceContainer.hAlign = 'left'
-manaBalanceContainer.vAlign = 'bottom'
-manaBalanceContainer.opacity = 1
-manaBalanceContainer.positionY = 5
-manaBalanceContainer.positionX = 5
-
-const manaBalanceHeader = new UIText(manaBalanceContainer)
-manaBalanceHeader.fontSize = 8
-manaBalanceHeader.value = 'MANA:'
-manaBalanceHeader.hAlign = 'left'
-manaBalanceHeader.vAlign = 'center'
-manaBalanceHeader.positionY = 15
-manaBalanceHeader.positionX = 4
-
-
-const maticManaBalanceContainer = new UIContainerRect(balanceContainer)
-maticManaBalanceContainer.adaptWidth = true
-maticManaBalanceContainer.width = '35%'
-maticManaBalanceContainer.height = '60%'
-maticManaBalanceContainer.color = Color4.Blue()
-maticManaBalanceContainer.hAlign = 'right'
-maticManaBalanceContainer.vAlign = 'bottom'
-maticManaBalanceContainer.opacity = 1
-maticManaBalanceContainer.positionY = 5
-maticManaBalanceContainer.positionX = -5
-
-
-const maticManaBalanceHeader = new UIText(maticManaBalanceContainer)
-maticManaBalanceHeader.fontSize = 8
-maticManaBalanceHeader.value = 'Matic/MANA:'
-maticManaBalanceHeader.hAlign = 'left'
-maticManaBalanceHeader.vAlign = 'center'
-maticManaBalanceHeader.positionY = 15
-maticManaBalanceHeader.positionX = 4
-
-
-const depositButtonUp = new UIImage(maticManaBalanceContainer, resources.textureImages.gameUI)
-depositButtonUp.name = "clickable-image"
-depositButtonUp.width = "44"
-depositButtonUp.height = "24"
-depositButtonUp.sourceWidth = 236
-depositButtonUp.sourceHeight = 140
-depositButtonUp.isPointerBlocker = true
-depositButtonUp.hAlign = 'center'
-depositButtonUp.vAlign = 'center'
-depositButtonUp.positionY = -1
-depositButtonUp.positionX = -55
-depositButtonUp.sourceLeft = 92
-depositButtonUp.sourceTop = 32
-depositButtonUp.sourceWidth = 54
-depositButtonUp.sourceHeight = 32
-depositButtonUp.onClick = new OnClick(() => {
-  // DO SOMETHING
-  log('click')
-  depositInputContainer.visible = true
-  depositInputContainer.isPointerBlocker = true
-  depositButtonUp.sourceTop = 0
-})
-    
-
-////////////////////////////////////////
-//DEPOSIT Window
-const depositCanvas = new UICanvas()
-
-const depositInputContainer = new UIContainerRect(depositCanvas)
-depositInputContainer.adaptWidth = true
-depositInputContainer.width = '15%'
-depositInputContainer.height = '17%'
-depositInputContainer.color = Color4.Blue()
-depositInputContainer.hAlign = 'center'
-depositInputContainer.vAlign = 'bottom'
-depositInputContainer.visible = false
-depositInputContainer.opacity = 1
-depositInputContainer.positionY = 140
-depositInputContainer.positionX = 355
-
-
-const depositHeader = new UIText(depositInputContainer)
-depositHeader.fontSize = 14
-depositHeader.value = 'Deposit Mana'
-depositHeader.hAlign = 'left'
-depositHeader.vAlign = 'top'
-depositHeader.positionY = 30
-depositHeader.positionX = 4
-
-const depositDescHeader = new UIText(depositInputContainer)
-depositDescHeader.fontSize = 8
-depositDescHeader.value = 'Depositing Mana to the Matic Network\nallows for cheaper GAS fees on transactions.'
-depositDescHeader.hAlign = 'left'
-depositDescHeader.vAlign = 'top'
-depositDescHeader.positionY = 10
-depositDescHeader.positionX = 4
-
-
-const depositAmtHeader = new UIText(depositInputContainer)
-depositAmtHeader.fontSize = 12
-depositAmtHeader.value = 'Deposit Amount: '
-depositAmtHeader.hAlign = 'left'
-depositAmtHeader.vAlign = 'top'
-depositAmtHeader.positionY = -10
-depositAmtHeader.positionX = 4
-
-const close = new UIImage(depositInputContainer, resources.textureImages.gameUI)
-close.name = "clickable-image"
-close.width = "22px"
-close.height = "22px"
-close.sourceWidth = 92
-close.sourceHeight = 91
-close.vAlign = "top"
-close.hAlign = "right"
-close.isPointerBlocker = true
-close.sourceLeft = 1
-close.sourceTop = 1
-close.sourceWidth = 36
-close.sourceHeight = 36
-close.onClick = new OnClick(() => {
-  log("clicked on the close image")
-  depositInputContainer.visible = false
-  depositInputContainer.isPointerBlocker = false
-  depositButtonUp.sourceTop = 32
-})
-
-
-
-
-const depositInput = new UIInputText(depositInputContainer)
-depositInput.width = "75px"
-depositInput.height = "20px"
-depositInput.vAlign = "center"
-depositInput.hAlign = "center"
-depositInput.fontSize = 10
-depositInput.placeholder = "000"
-depositInput.vTextAlign ="center"
-depositInput.placeholderColor = Color4.White()
-depositInput.positionY = 0
-depositInput.positionX = 43
-depositInput.opacity = 1
-depositInput.isPointerBlocker = true
-
-
-depositInput.onTextSubmit = new OnTextSubmit((x) => {
-  log(depositInput.value)
-  const text = new UIText(depositInput)
-  text.value = x.text
-  text.width = "100%"
-  text.height = "20px"
-  text.vAlign = "center"
-  text.hAlign = "left"
-  depositValue = +x.text
-  log('deposit: '+text.value)
+    })
   
-  executeTask(async () => {await matic.depositMana(depositValue,'mainnet')})
-  //await matic.depositMana(depositValue,'mainnet')
-  })
-
-
-  const depositSubmit = new UIImage(depositInputContainer, resources.textureImages.gameUI)
-  depositSubmit.name = "clickable-image"
-  depositSubmit.width = "40px"
-  depositSubmit.height = "26px"
-  depositSubmit.sourceWidth = 92
-  depositSubmit.sourceHeight = 91
-  depositSubmit.vAlign = "top"
-  depositSubmit.hAlign = "right"
-  depositSubmit.isPointerBlocker = true
-  depositSubmit.sourceLeft = 38
-  depositSubmit.sourceTop = 1
-  depositSubmit.sourceWidth = 53
-  depositSubmit.sourceHeight = 42
-  depositSubmit.positionY = -46
-  depositSubmit.positionX = -20
-
-  
-const depositDescText = new UIText(depositInputContainer)
-depositDescText.fontSize = 8
-depositDescText.value = 'Please allow 10 or more minutes for the \ntransaction to arrive on the Matic Network. '
-depositDescText.hAlign = 'left'
-depositDescText.vAlign = 'bottom'
-depositDescText.positionY = 20
-depositDescText.positionX = 4
-
-
+function setTimerVis(VisYN:boolean){
+  log('function worked')
+  timerRect.visible = VisYN
+}
 
 /////////////////////////////////////////////
 //
 
+let countDownDelay:number = 10 
+//the prevSecond is used to ensure mgs are only sent every second
+let prevSecond = -50
+let tick:number
+let countDown:number
+
 //Update the UI with the player qualification results
 export class LoopSystem implements ISystem {
-  update(){
+  update(dt){
+
+    //raceRunning=false
+
+   // log(':-:::- '+raceRunning)
+//    if (tick>0) {
+  if (raceRunning) {
+      //log(':-- '+raceRunning)
+          
+        if (restartTimer){
+          log('restart')
+          dt = 0
+          timer = 0
+          timerRect.visible = true
+          
+        }
+
+        //Turn off the restart timer
+        restartTimer= false
+
+        timer += dt
+        tick = Math.ceil(timer)
+
+        countDown = countDownDelay - tick
+
+//        sceneMessageBus.emit('nextRaceStartingTimer',{tick: tick, timerVisible: true, currentPlayerName: currentPlayerName})
+        /*
+        var mind = timer % (60 * 60)
+        minuteTimer = Math.floor(mind/60)
+        var minStr:String = String(minuteTimer)
+
+        var secd = mind % 60
+        secondsTimer = Math.ceil(secd) - 10
+        //countDown30 = countDown30 - secondsTimer
+
+        if (secondsTimer < 10) {
+          var secondStr:String = '0' + String(secondsTimer)
+
+        } else {
+          var secondStr:String = String(secondsTimer)
+        }
+
+        minSecTimer = minStr + ":" + secondStr
+
+        //let tickTock = timerMinSec(timer)
+        // timeMinSec.value = minSecTimer
+          //log('minute second: '+minSecTimer)
+          */
+         if (timerHeader.value!=undefined){
+           // timerHeader.value = '``: '+countDown
+         }
+          //Determine if client is the game host
+          if(startGateArr[0] == currentPlayerName){
+              
+            
+           
+            //Execute once per second
+            if(tick>prevSecond){
+             
+              prevSecond = tick
+              sceneMessageBus.emit('timerTick', {tick: tick})
+              
+              //when countdown hits 0 open the start gate, sound horn, hide timer flag race is running
+              // if (countDown==0) {
+              
+              // /*
+              //   //msg gate is open
+              //   sceneMessageBus.emit('open_close_start_gate',{gate: 'open'})
+              //   //
+              //   sceneMessageBus.emit('nextRaceStartingTimer',{tick: tick, timerVisible: false,currentPlayerName: currentPlayerName})
+                
+              //   sceneMessageBus.emit('raceRunning',{running:'true'})
+              // */
+
+              // }
+            }
+          
+          }      
+
+  } 
+  
+
+
+    ///////////
     playersInGate = startGateArr.length
     playersRacing = stage1Arr.length
+   // log('color'+Color4.FromHexString(stage01Color))
     /////////////////////
     //STAGE COLOR
-    stage01.color = Color4.FromHexString(stage01Color)
+    //stage01Container.color = Color4.FromHexString('#66fa39')
+    //log('color'+stage01Container.color)
 
     //
-    manaBalanceHeader.value = 'Mana:\n' + l1_l2Balance.l1.toFixed(2)
-    maticManaBalanceHeader.value = "Matic/Mana:\n" +l1_l2Balance.l2.toFixed(2)
+    if(l1_l2Balance!=undefined){
+        manaBalanceTxt.value = '(L1) Mana Balance: ' + l1_l2Balance.l1.toFixed(2)
+        maticBalanceTxt.value ='(L2) Matic/Mana Balance: ' +l1_l2Balance.l2.toFixed(2)
+    }
 
     let knockoutNumber:number
 
     if (playersRacing == 0) {
 
-      startTextMsg.value = 'Started racing: '+playersRacing+'\nPlayers in Gate: '+ playersInGate
-      knockoutNumber = playersInGate
+      startTextMsg.value = 'Players waiting: '+ playersInGate
+      
     }
 
     if (playersRacing > 0) {
 
-      startTextMsg.value = 'Started racing: '+playersRacing+'\nPlayers in Gate: '+ playersInGate
-      knockoutNumber = playersRacing
+      startTextMsg.value = 'Players Racing: '+ playersRacing
+  
     }
 
     let s1_2b_elim =  (knockoutNumber - stage1EliminationNumber)
     stage01Msg.value = 'Stage 1: '+stage2Arr.length +' / '+stage1EliminationNumber
-    s1Elimination.value = 'Knockout x '+ s1_2b_elim
+    
     
 //todo add already eliminated and pass var for correct elimn numbers in subsequent stages
 
     let s2_2b_elim =  (stage1EliminationNumber - stage2EliminationNumber) 
     stage02Msg.value = 'Stage 2: '+stage3Arr.length+' / '+stage2EliminationNumber
-    s2Elimination.value = 'Knockout x '+ s2_2b_elim
+  
     
     let s3_2b_elim =  (stage2EliminationNumber - stage3EliminationNumber) 
     stage03Msg.value = 'Stage 3: '+stage4Arr.length+' / '+stage3EliminationNumber
-    s3Elimination.value = 'Knockout x '+ s3_2b_elim
+  
     
     let s4_2b_elim =  (stage3EliminationNumber - stage4EliminationNumber) 
     stage04Msg.value = 'Stage 4: '+stage5Arr.length+' / '+stage4EliminationNumber
-    s4Elimination.value = 'Knockout x '+ s4_2b_elim
+ 
     
     let s5_2b_elim =  (stage4EliminationNumber - stage5EliminationNumber) 
     stage05Msg.value = 'Stage 5: '+stage6Arr.length+' / '+stage5EliminationNumber
-    s5Elimination.value = 'Knockout x '+ s5_2b_elim
+  
     
-    stage06Msg.value = 'Stage 6: '+stage6Arr.length
-    s6Elimination.value = 'Race winner:  '+ raceWinner
+    stage06Msg.value = 'Stage 6: '+finishArr.length+' / 2'
+  
     
   }
 }

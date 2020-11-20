@@ -20,7 +20,8 @@ export default {
       start_gate: new GLTFShape("models/start_gate.glb"),
       roundaboutAShape: new GLTFShape("models/level01Course/roundaboutA.glb"),
       stage_gate: new GLTFShape("models/gate_floor.glb"),
-      stage_gate_barrier: new GLTFShape("models/stage_gate.glb")
+      stage_gate_barrier: new GLTFShape("models/stage_gate.glb"),
+      start_gate_01: new GLTFShape("models/starting_gate.glb")
     },
     course01: {
       course01: new GLTFShape("models/course01/course01.glb"),
@@ -49,11 +50,12 @@ export default {
       rotating_platform_2x: new GLTFShape("models/course05/spiral.glb")
     },
     sounds: {
-      kalimbaNotes: {},
+      airhorn: new AudioClip("sounds/airhorn.mp3")
     },
     textureImages: {
       buttonBlue: new Texture("assets/buttonBlue.png"), 
-      gameUI: new Texture("assets/gameUI.png") 
+      gameUI: new Texture("assets/dcl_konckout_ui.png") 
+
     }
   }
   

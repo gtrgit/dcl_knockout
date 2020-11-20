@@ -8,14 +8,14 @@ export const sceneMessageBus = new MessageBus()
 export class Emitter extends Entity {
  
   constructor(
-    shape: GLTFShape,
-    transform: Transform,
+    //shape: GLTFShape,
+    //transform: Transform,
     name: any
   ) {
     super()
-    engine.addEntity(this)
-    this.addComponent(shape)
-    this.addComponent(transform)
+    //engine.addEntity(this)
+    //this.addComponent(shape)
+    //this.addComponent(transform)
 
 
     //let thisStone = this
@@ -24,7 +24,7 @@ export class Emitter extends Entity {
       new OnPointerDown(
         (e) => {
          //log(name)
-            sceneMessageBus.emit('startGamePlayerName', { playerName: name })
+            sceneMessageBus.emit('enterRace', { playerName: name })
         },
         {
           button: ActionButton.POINTER,
