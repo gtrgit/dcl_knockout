@@ -122,7 +122,7 @@ let identifier:string
 
 /////////////////////////////////////
 //game UI
-let manaPrice:number = 1
+let manaPrice:number = 5
 
 
 //
@@ -183,6 +183,69 @@ sceneMessageBus.on('player', (e) => {
 //Trigger Box to fit on each gate
 const trigBox = new TriggerBoxShape(new Vector3(1,2,7), new Vector3(0,3,0))  //size, position  //NOTE CHANGE THE size if the position is changed
 const winnerTriggerBox = new TriggerBoxShape(new Vector3(3,2,3), new Vector3(0,2,0))  //size, position  //NOTE CHANGE THE size if the position is changed
+const freeTrigger = new TriggerBoxShape(new Vector3(1,2,1), new Vector3(0,1,0))  //size, position  //NOTE CHANGE THE size if the position is changed
+
+
+//FreeStart
+const freeStartTrigger = new TriggeredPlatform(
+  resources.stadium.ring, 
+  new Transform({
+    position: new Vector3(5,.1,36.7),
+    scale: new Vector3(2, .2, 2),
+    rotation: Quaternion.Euler(0, 0, 180),
+  }),
+  freeTrigger,
+  userData,
+  identifier = 'enterRaceFree'
+)
+
+let freeStartText = new Entity()
+freeStartText.addComponent(new TextShape("Free Play"))
+freeStartText.addComponent(new Transform({
+  position: new Vector3(0, -4, 0),
+  //rotation: new Quaternion(0.7071,0.7071 ,0,0), // vert (0.7071,0.7071 ,0,0 ) //flat (0.7071, 0, 0, 0.7071)
+  scale: new Vector3(.1, 1 , .1)
+}))
+freeStartText.getComponent(TextShape).color = Color3.Black()
+freeStartText.getComponent(TextShape).shadowColor = Color3.White()
+freeStartText.getComponent(TextShape).shadowOffsetY = 1
+freeStartText.getComponent(TextShape).shadowOffsetX = -1
+freeStartText.getComponent(TextShape).billboard = true
+freeStartText.setParent(freeStartTrigger)   
+
+
+
+
+//FreeStart
+const spectateTrigger = new TriggeredPlatform(
+  resources.stadium.ring, 
+  new Transform({
+    position: new Vector3(6.7,.1,41.3),
+    scale: new Vector3(2, .2, 2),
+    rotation: Quaternion.Euler(0, 0, 180),
+  }),
+  freeTrigger,
+  userData,
+  identifier = 'spectator'
+)
+
+let spectateText = new Entity()
+spectateText.addComponent(new TextShape("Spectator Area"))
+spectateText.addComponent(new Transform({
+  position: new Vector3(0, -4, 0),
+  //rotation: new Quaternion(0.7071,0.7071 ,0,0), // vert (0.7071,0.7071 ,0,0 ) //flat (0.7071, 0, 0, 0.7071)
+  scale: new Vector3(.1, 1 , .1)
+}))
+spectateText.getComponent(TextShape).color = Color3.Black()
+spectateText.getComponent(TextShape).shadowColor = Color3.White()
+spectateText.getComponent(TextShape).shadowOffsetY = 1
+spectateText.getComponent(TextShape).shadowOffsetX = -1
+spectateText.getComponent(TextShape).billboard = true
+spectateText.setParent(spectateTrigger)   
+
+
+
+
 
 
 //
@@ -190,8 +253,8 @@ const winnerTriggerBox = new TriggerBoxShape(new Vector3(3,2,3), new Vector3(0,2
 const postStartGateTrigger = new TriggeredPlatform(
   resources.stadium.stage_gate, 
   new Transform({
-    position: new Vector3(6,.5,24),
-    scale: new Vector3(1, 1, .5),
+    position: new Vector3(6.7,.4,25),
+    scale: new Vector3(2, 1, .5),
     rotation: Quaternion.Euler(180, 90, 0),
   }),
   trigBox,
@@ -349,8 +412,6 @@ class Barrier extends Entity {
     }
   })
   
-
-//TODO FIX the order of the arrarys:   (startGateArr)->(stage1Arr)->()->()->()->(finish)
 sceneMessageBus.on('enterRace', (e) => {
   log('trigger name '+e)
   startGateArr.push(e)
@@ -375,6 +436,43 @@ sceneMessageBus.on('enterRace', (e) => {
     }
 
 })
+
+sceneMessageBus.on('spectator', (e) => {
+  movePlayerTo({ x: 11, y: 28, z: 36.7 })
+}
+)
+
+sceneMessageBus.on('enterRaceFree', (e) => {
+  movePlayerTo({ x: 3, y: 0, z: 23 })
+  log('trigger name '+e.stageXTrigger.result)
+  startGateArr.push(e.stageXTrigger.result)
+
+  //timerRect.visible = true
+  setTimerVis(true)
+  //
+  restartTimer = true
+  //
+  raceRunning = true
+  
+  log('(starting gate: '+startGateArr.length+')->(stage 1: '+stage1Arr.length+')')
+
+  //The elimination counts appear on the 
+  if (stage1Arr.length > 0) {
+  stage1EliminationNumber = Math.round(stage1Arr.length-(stage1Arr.length*.2))
+  stage2EliminationNumber = Math.round(stage1EliminationNumber-(stage1EliminationNumber*.2))
+  stage3EliminationNumber = Math.round(stage2EliminationNumber-(stage2EliminationNumber*.2))
+  stage4EliminationNumber = Math.round(stage3EliminationNumber-(stage3EliminationNumber*.2))
+  stage5EliminationNumber = Math.round(stage4EliminationNumber-(stage4EliminationNumber*.2))
+  stage6EliminationNumber = 2// Math.round(stage5EliminationNumber-(stage5EliminationNumber*.2))
+   } 
+
+    if (stage1Arr.length > 0) {
+
+    //eliminateFromRace(startGateArr)
+    }
+
+})
+
 
 //TODO FIX the order of the arrarys:   (startGateArr)->(stage1Arr)->()->()->()->(finish)
 sceneMessageBus.on('start', (e) => {
@@ -635,19 +733,19 @@ function eliminateFromRace(stageArray: any[]){
     }
 
 
-    const listLog = spawnCube(5, 2.5, 24)
+  //   const listLog = spawnCube(5, 2.5, 24)
 
-    listLog.addComponent(new OnPointerDown((e) => {
+  //   listLog.addComponent(new OnPointerDown((e) => {
       
-      startGateArr.forEach(function (value){
-        log('stage1 test '+value)
-        if (currentPlayerName == value) {
+  //     startGateArr.forEach(function (value){
+  //       log('stage1 test '+value)
+  //       if (currentPlayerName == value) {
         
-        }
-      })
-    }
+  //       }
+  //     })
+  //   }
 
-  ))
+  // ))
 
 
 ////////////////////////////////////////////////////////////
@@ -662,6 +760,7 @@ function eliminateFromRace(stageArray: any[]){
 //MATIC
 
 //Get Player Balance
+//error_test
 executeTask(async () => {await matic.balance(playerEthAdr).then((value)=> {l1_l2Balance = value})})
 
 //////////////////////////////////////
@@ -738,6 +837,7 @@ const start_gate_model = new Entity()
 start_gate_model.addComponent(resources.stadium.start_gate)
 start_gate_model.addComponent(new Transform({position: new Vector3(-1,0.1,16),rotation: Quaternion.Euler(0,270,0)}))
 engine.addEntity(start_gate_model)
+
 
 
 //
@@ -1244,22 +1344,27 @@ enterGameBtn.visible = true
 enterGameBtn.onClick = new OnPointerDown(
   async e => {
     try {
+      //error_test
           await matic.sendMana(polyGraphWallet,manaPrice,true,'mainnet')
           movePlayerTo({ x: 3, y: 0, z: 19 })
-          } catch (error) {
+
+          log('Emitted to msg '+currentPlayerName)
+          sceneMessageBus.emit('enterRace',currentPlayerName) //currentPlayerName
+          //movePlayerTo({ x: 3, y: 0, z: 19 }) 
+          //Make the countdown container visible
+          setTimerVis(true)
+          //
+          restartTimer = true
+          //
+          raceRunning = true
+        
+        
+        } catch (error) {
             log(error.toString());
             //TODO 
         }
 
-        log('Emitted to msg '+currentPlayerName)
-        sceneMessageBus.emit('enterRace',currentPlayerName) //currentPlayerName
-        movePlayerTo({ x: 3, y: 0, z: 19 }) 
-        //Make the countdown container visible
-        setTimerVis(true)
-        //
-        restartTimer = true
-        //
-        raceRunning = true
+       
 
        }
 
@@ -1341,7 +1446,7 @@ gameUI_bronze.visible = true
 
 
 const goldNftText = new UIText(gameUI)
-goldNftText.value = 'Gold: 99'
+goldNftText.value = 'Gold: 00'
 goldNftText.fontSize = 9
 goldNftText.hAlign = 'left'
 goldNftText.vAlign = 'top'
@@ -1373,6 +1478,7 @@ deposit10Btn.onClick = new OnPointerDown(
   async ()=>{
     log('DEPOSIT 10')
     try {
+      //error_test
       await matic.depositMana(10,'mainnet')
     } catch {log('failed to deposit')}
   }
@@ -1402,6 +1508,7 @@ deposit50Btn.onClick = new OnPointerDown(
   async ()=>{
     log('DEPOSIT 50')
     try {
+      //error_test
       await matic.depositMana(50,'mainnet')
     } catch {log('failed to deposit')}
   }
@@ -1430,39 +1537,41 @@ deposit100Btn.onClick = new OnPointerDown(
   async ()=>{
     log('DEPOSIT 100')
     try {
+      //error_test
       await matic.depositMana(100,'mainnet')
     } catch {log('failed to deposit')}
   }
 )
 
 
-//////////////////////////////////////////////////
-//DEPOSIT 1000
-const deposit1000Btn = new UIImage(gameUICanvas, resources.textureImages.gameUI)
-deposit1000Btn.name = "clickable-image"
-deposit1000Btn.width = "30"
-deposit1000Btn.height = "25"
-deposit1000Btn.sourceWidth = 574
-deposit1000Btn.sourceHeight = 805
-deposit1000Btn.isPointerBlocker = true
-deposit1000Btn.hAlign = 'right'
-deposit1000Btn.vAlign = 'bottom'
-deposit1000Btn.positionY = 127
-deposit1000Btn.positionX = -40
-deposit1000Btn.opacity = 1
-deposit1000Btn.sourceLeft = 477
-deposit1000Btn.sourceTop = 680
-deposit1000Btn.sourceWidth = 50
-deposit1000Btn.sourceHeight = 50
-deposit1000Btn.visible = true
-deposit1000Btn.onClick = new OnPointerDown(
-  async ()=>{
-    log('DEPOSIT 10')
-    try {
-      await matic.depositMana(1000,'mainnet')
-    } catch {log('failed to deposit')}
-  }
-)
+// //////////////////////////////////////////////////
+// //DEPOSIT 1000
+// const deposit1000Btn = new UIImage(gameUICanvas, resources.textureImages.gameUI)
+// deposit1000Btn.name = "clickable-image"
+// deposit1000Btn.width = "30"
+// deposit1000Btn.height = "25"
+// deposit1000Btn.sourceWidth = 574
+// deposit1000Btn.sourceHeight = 805
+// deposit1000Btn.isPointerBlocker = true
+// deposit1000Btn.hAlign = 'right'
+// deposit1000Btn.vAlign = 'bottom'
+// deposit1000Btn.positionY = 127
+// deposit1000Btn.positionX = -40
+// deposit1000Btn.opacity = 1
+// deposit1000Btn.sourceLeft = 477
+// deposit1000Btn.sourceTop = 680
+// deposit1000Btn.sourceWidth = 50
+// deposit1000Btn.sourceHeight = 50
+// deposit1000Btn.visible = true
+// deposit1000Btn.onClick = new OnPointerDown(
+//   async ()=>{
+//     log('DEPOSIT 1000')
+//     try {
+//       //error_test
+//       await matic.depositMana(1000,'mainnet')
+//     } catch {log('failed to deposit')}
+//   }
+// )
 
 //////////////////////////////////////////////////
 //DEPOSIT Info
@@ -1518,7 +1627,7 @@ tierInfoBtn.onClick = new OnPointerDown(
 
 
 const silverNftText = new UIText(gameUI)
-silverNftText.value = 'Silver: 99'
+silverNftText.value = 'Silver: 00'
 silverNftText.fontSize = 9
 silverNftText.hAlign = 'left'
 silverNftText.vAlign = 'top'
@@ -1527,7 +1636,7 @@ silverNftText.positionY = -99
 silverNftText.positionX = 85
 
 const bronzeNftText = new UIText(gameUI)
-bronzeNftText.value = 'Bronze: 99'
+bronzeNftText.value = 'Bronze: 00'
 bronzeNftText.fontSize = 9
 bronzeNftText.hAlign = 'left'
 bronzeNftText.vAlign = 'top'
@@ -1746,12 +1855,12 @@ timerHeader.positionX = -40
 ////////////////////////////////////////////
 //TIMER Ticks
 
-let timerCountDown:number = 13
+let timerCountDown:number = 30
 
 sceneMessageBus.on('timerTick', (e) => {
   // log('timer: '+e.tick)
  
-  timerCountDown =  12 - e.tick
+  timerCountDown =  30 - e.tick
   timerHeader.value = 'Next Race starting in : '+timerCountDown
   // log('timer: '+timerCountDown)
   //sceneMessageBus.emit('raceRunning',{running:'true'})

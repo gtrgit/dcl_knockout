@@ -1,7 +1,7 @@
 export default {
     stadium: {
       block: new GLTFShape('models/o2.glb'),
-      statium: new GLTFShape("models/dcl_knockout_stadium.glb"),
+      statium: new GLTFShape("models/dcl_knockout_stadium2.glb"),
       berm: new GLTFShape("models/berm.glb"),
       sign_d: new GLTFShape("models/d.glb"),
       sign_c: new GLTFShape("models/c.glb"),
@@ -21,7 +21,8 @@ export default {
       roundaboutAShape: new GLTFShape("models/level01Course/roundaboutA.glb"),
       stage_gate: new GLTFShape("models/gate_floor.glb"),
       stage_gate_barrier: new GLTFShape("models/stage_gate.glb"),
-      start_gate_01: new GLTFShape("models/starting_gate.glb")
+      start_gate_01: new GLTFShape("models/starting_gate.glb"),
+      ring: new GLTFShape("models/rings.glb")
     },
     course01: {
       course01: new GLTFShape("models/course01/course01.glb"),
@@ -54,7 +55,7 @@ export default {
     },
     textureImages: {
       buttonBlue: new Texture("assets/buttonBlue.png"), 
-      gameUI: new Texture("assets/dcl_konckout_ui.png") 
+      gameUI: new Texture("assets/dcl_knockout_ui2.png") 
 
     }
   }
