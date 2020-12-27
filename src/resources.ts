@@ -22,7 +22,8 @@ export default {
       stage_gate: new GLTFShape("models/gate_floor.glb"),
       stage_gate_barrier: new GLTFShape("models/stage_gate.glb"),
       start_gate_01: new GLTFShape("models/starting_gate.glb"),
-      ring: new GLTFShape("models/rings.glb")
+      ring: new GLTFShape("models/rings.glb"),
+      donate: new GLTFShape("models/donateBox.glb"),
     },
     course01: {
       course01: new GLTFShape("models/course01/course01.glb"),

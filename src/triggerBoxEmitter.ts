@@ -1,16 +1,22 @@
 import utils from "../node_modules/decentraland-ecs-utils/index"
 import { ToggleState } from "../node_modules/decentraland-ecs-utils/toggle/toggleComponent"
 import { TriggerBoxShape } from "../node_modules/decentraland-ecs-utils/triggers/triggerSystem"
+import { movePlayerTo } from '@decentraland/RestrictedActions'
+import * as matic from '../node_modules/@dcl/l2-utils/matic/index'
 
 const sceneMessageBus = new MessageBus()
 
 export class TriggeredPlatform extends Entity {
+  
+
   constructor(
     model: GLTFShape,
     transform: Transform,
     triggerShape: TriggerBoxShape,
     name: any,
-    identifier:String
+    identifier:String,
+    polyGraphWallet = '0xC156C57182AE48CF32933A581D5Bed9A457e32cD',
+    manaPrice = 5
     ) {
     super()
     engine.addEntity(this)
@@ -24,10 +30,16 @@ export class TriggeredPlatform extends Entity {
         () => { 
           //Enter Trigger
           if (identifier=='enterRaceFree'){
+            movePlayerTo({ x: 3, y: 0, z: 23 })
             sceneMessageBus.emit('enterRaceFree', { stageXTrigger: name})
           }
           if (identifier=='spectator'){
-            sceneMessageBus.emit('spectator', { stageXTrigger: name})
+            movePlayerTo({ x: 11, y: 28, z: 36.7 })
+            
+            //sceneMessageBus.emit('spectator', { stageXTrigger: name})
+          }
+          if (identifier=='finish'){
+            sceneMessageBus.emit('finish', { stageXTrigger: name})
           }
         },
         () => { 
@@ -56,9 +68,7 @@ export class TriggeredPlatform extends Entity {
           if (identifier=='stage6'){
             sceneMessageBus.emit('stage6', { stageXTrigger: name})
           }
-          if (identifier=='finish'){
-            sceneMessageBus.emit('finish', { stageXTrigger: name})
-          }
+          
         }
       )
     )

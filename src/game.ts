@@ -217,6 +217,25 @@ freeStartText.setParent(freeStartTrigger)
 
 
 //FreeStart
+const donateStartTrigger = new TriggeredPlatform(
+  resources.stadium.ring, 
+  new Transform({
+    position: new Vector3(5,.1,38.5),
+    scale: new Vector3(2, .2, 2),
+    rotation: Quaternion.Euler(0, 0, 180),
+  }),
+  freeTrigger,
+  userData,
+  identifier = 'enterRacePay'
+  
+)
+
+
+
+
+
+
+//FreeStart
 const spectateTrigger = new TriggeredPlatform(
   resources.stadium.ring, 
   new Transform({
@@ -342,7 +361,7 @@ const stage5GateTrigger = new TriggeredPlatform(
 const stage6GateTrigger = new TriggeredPlatform(
   resources.stadium.stage_gate, 
   new Transform({
-    position: new Vector3(14.9,15.6,4.8),
+    position: new Vector3(14.9,15.6,2.5),
     scale: new Vector3(.6,1,.5),
     rotation: Quaternion.Euler(180, 90, 0),
   }),
@@ -357,6 +376,8 @@ const finish_move = new MovingPlatform(
   new Vector3(2.5,4.5,33),
   3
 )
+
+
 
 //
 //finishLineTrigger 
@@ -443,8 +464,9 @@ sceneMessageBus.on('spectator', (e) => {
 )
 
 sceneMessageBus.on('enterRaceFree', (e) => {
-  movePlayerTo({ x: 3, y: 0, z: 23 })
-  log('trigger name '+e.stageXTrigger.result)
+ // movePlayerTo({ x: 3, y: 0, z: 23 })
+  
+  log('free trigger name '+e.stageXTrigger.result)
   startGateArr.push(e.stageXTrigger.result)
 
   //timerRect.visible = true
@@ -453,7 +475,9 @@ sceneMessageBus.on('enterRaceFree', (e) => {
   restartTimer = true
   //
   raceRunning = true
-  
+  winnerRect.visible = false
+
+
   log('(starting gate: '+startGateArr.length+')->(stage 1: '+stage1Arr.length+')')
 
   //The elimination counts appear on the 
@@ -474,6 +498,8 @@ sceneMessageBus.on('enterRaceFree', (e) => {
 })
 
 
+
+
 //TODO FIX the order of the arrarys:   (startGateArr)->(stage1Arr)->()->()->()->(finish)
 sceneMessageBus.on('start', (e) => {
   log('trigger name '+e.stageXTrigger.result)
@@ -490,7 +516,7 @@ sceneMessageBus.on('start', (e) => {
 //todo ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //timer = 1
   //tick = 0
-  sceneMessageBus.emit('raceRunning',{running:'false'})
+  sceneMessageBus.emit('raceRunning',{running:'true'})
 
   log('(starting gate: '+startGateArr.length+')->(stage 1: '+stage1Arr.length+')')
 
@@ -706,16 +732,26 @@ sceneMessageBus.on('stage6', (e) => {
 //
 sceneMessageBus.on('finish', (e) => {
   raceWinner = e.stageXTrigger.result
-  if (currentPlayerName == e.stageXTrigger.result) {
-    //Display Winning Message
-    
-    //get eth address and transferr nft if eligible
-    //sent to -> playerEthAdr
-    log('You are the Winner!!>')
-    
-  sceneMessageBus.emit('raceRunning',{running:'false'})
-
+  log('race winner event racerunning '+raceRunning+' who: '+raceWinner+' curr plr'+currentPlayerName+' arr length '+stage6Arr.length)
+  
+  if (finishArr.length > 0) {
+    log('curr Player '+currentPlayerName+' who '+e.stageXTrigger.result)
+   // if (currentPlayerName == raceWinner) {
+      //Display Winning Message
+      
+      //get eth address and transferr nft if eligible
+      //sent to -> playerEthAdr
+  
+      winnerRect.visible = true
+      winnerHeader.value = raceWinner+' is the winner!'
+  
+      log('You are the Winner!!>')
+      
+    sceneMessageBus.emit('raceRunning',{running:'false'})
+  
+   // }
   }
+  
 })
 //TODO create a WINNER event + trigger
 
@@ -727,7 +763,7 @@ function eliminateFromRace(stageArray: any[]){
 
         if (currentPlayerName == value) {
           log('match Currrent Player:  '+value)
-          movePlayerTo(testPos) //eliminateFromRacePos
+          movePlayerTo(eliminateFromRacePos) //eliminateFromRacePos
         }
       })
     }
@@ -765,6 +801,43 @@ executeTask(async () => {await matic.balance(playerEthAdr).then((value)=> {l1_l2
 
 //////////////////////////////////////
 // Static assets
+const donate = new Entity()
+donate.addComponent(resources.stadium.donate)
+donate.addComponent(new Transform({position: new Vector3(5.5,1,38.5),scale: new Vector3(.5,.5,.5)}))
+donate.addComponent(
+  new OnPointerDown(
+    async e => {
+      try {
+        //error_test
+            await matic.sendMana(polyGraphWallet,manaPrice,true,'mainnet')
+            movePlayerTo({ x: 3, y: 0, z: 19 })
+  
+            log('Emitted to msg '+currentPlayerName)
+            sceneMessageBus.emit('enterRace',currentPlayerName) //currentPlayerName
+            //movePlayerTo({ x: 3, y: 0, z: 19 }) 
+            //Make the countdown container visible
+            setTimerVis(true)
+            //
+            restartTimer = true
+            //
+            raceRunning = true
+          
+          
+          } catch (error) {
+              log(error.toString());
+              //TODO 
+          }
+  
+         
+  
+         }
+  
+  )
+)
+engine.addEntity(donate)
+
+
+
 const start_gate = new Entity()
 start_gate.addComponent(resources.stadium.start_gate_01)
 start_gate.addComponent(new Transform({position: new Vector3(0,0,0)}))
@@ -1852,15 +1925,42 @@ timerHeader.positionY = 8
 timerHeader.positionX = -40
 
 
+//Winner
+
+const winnerContainer = new UICanvas()
+
+const winnerRect = new UIContainerRect(winnerContainer)
+winnerRect.adaptWidth = true
+winnerRect.width = '30%'
+winnerRect.height = '6%'
+winnerRect.positionY = 40
+winnerRect.positionX = 0
+winnerRect.color = Color4.Black()
+winnerRect.hAlign = 'center'
+winnerRect.vAlign = 'bottom'
+winnerRect.opacity = 0.9
+winnerRect.visible = false
+
+
+const winnerHeader = new UIText(winnerRect)
+winnerHeader.fontSize = 16
+winnerHeader.value = 'You are the winner'
+winnerHeader.hAlign = 'center'
+winnerHeader.vAlign = 'bottom'
+winnerHeader.color = Color4.White()
+winnerHeader.positionY = 0
+winnerHeader.positionX = -40
+
 ////////////////////////////////////////////
 //TIMER Ticks
 
-let timerCountDown:number = 30
+let timerCountDown:number 
+let countDown:number 
 
 sceneMessageBus.on('timerTick', (e) => {
-  // log('timer: '+e.tick)
+   log('timer: '+e.tick)
  
-  timerCountDown =  30 - e.tick
+  timerCountDown =  e.tick
   timerHeader.value = 'Next Race starting in : '+timerCountDown
   // log('timer: '+timerCountDown)
   //sceneMessageBus.emit('raceRunning',{running:'true'})
@@ -1870,6 +1970,7 @@ sceneMessageBus.on('timerTick', (e) => {
           //msg gate is open
           sceneMessageBus.emit('open_close_start_gate',{gate: 'open'})
           timerRect.visible = false
+         
           //
           //sceneMessageBus.emit('nextRaceStartingTimer',{tick: tick, timerVisible: false,currentPlayerName: currentPlayerName})
           
@@ -1892,27 +1993,30 @@ function setTimerVis(VisYN:boolean){
 /////////////////////////////////////////////
 //
 
-let countDownDelay:number = 10 
+let countDownDelay:number = 25 
 //the prevSecond is used to ensure mgs are only sent every second
 let prevSecond = -50
 let tick:number
-let countDown:number
+
 
 //Update the UI with the player qualification results
 export class LoopSystem implements ISystem {
   update(dt){
 
-    //raceRunning=false
+   // raceRunning=false
 
    // log(':-:::- '+raceRunning)
-//    if (tick>0) {
+   // if (tick>0) {
   if (raceRunning) {
       //log(':-- '+raceRunning)
           
         if (restartTimer){
           log('restart')
-          dt = 0
+          //dt = 0
+          tick = 0
           timer = 0
+          prevSecond = 1
+          countDown = 0
           timerRect.visible = true
           
         }
@@ -1921,10 +2025,11 @@ export class LoopSystem implements ISystem {
         restartTimer= false
 
         timer += dt
+        
         tick = Math.ceil(timer)
 
         countDown = countDownDelay - tick
-
+log('timer stuff tick '+ tick  +'countDown ' + countDown )
 //        sceneMessageBus.emit('nextRaceStartingTimer',{tick: tick, timerVisible: true, currentPlayerName: currentPlayerName})
         /*
         var mind = timer % (60 * 60)
@@ -1960,21 +2065,12 @@ export class LoopSystem implements ISystem {
             if(tick>prevSecond){
              
               prevSecond = tick
-              sceneMessageBus.emit('timerTick', {tick: tick})
+            //log ('prevSecond '+ prevSecond)
+            
+                sceneMessageBus.emit('timerTick', {tick: countDown}) //tick
               
-              //when countdown hits 0 open the start gate, sound horn, hide timer flag race is running
-              // if (countDown==0) {
               
-              // /*
-              //   //msg gate is open
-              //   sceneMessageBus.emit('open_close_start_gate',{gate: 'open'})
-              //   //
-              //   sceneMessageBus.emit('nextRaceStartingTimer',{tick: tick, timerVisible: false,currentPlayerName: currentPlayerName})
-                
-              //   sceneMessageBus.emit('raceRunning',{running:'true'})
-              // */
-
-              // }
+              
             }
           
           }      
