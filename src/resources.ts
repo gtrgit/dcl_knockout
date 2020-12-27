@@ -1,7 +1,7 @@
 export default {
     stadium: {
       block: new GLTFShape('models/o2.glb'),
-      statium: new GLTFShape("models/dcl_knockout_stadium2.glb"),
+      statium: new GLTFShape("models/dcl_knockout_stadium.glb"),
       berm: new GLTFShape("models/berm.glb"),
       sign_d: new GLTFShape("models/d.glb"),
       sign_c: new GLTFShape("models/c.glb"),
