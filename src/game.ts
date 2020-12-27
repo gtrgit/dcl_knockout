@@ -763,6 +763,7 @@ function eliminateFromRace(stageArray: any[]){
 
         if (currentPlayerName == value) {
           log('match Currrent Player:  '+value)
+          
           movePlayerTo(eliminateFromRacePos) //eliminateFromRacePos
         }
       })
