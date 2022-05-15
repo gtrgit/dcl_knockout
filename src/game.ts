@@ -20,7 +20,7 @@ import { movePlayerTo } from '@decentraland/RestrictedActions'
 
 ///////////////
 //Variables
-let polyGraphWallet = '0xC156C57182AE48CF32933A581D5Bed9A457e32cD'
+let polyGraphWallet = ''
 let currentPlayerName:any
 let playerEthAdr:string
 //let playerAtStartCount:number
